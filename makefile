@@ -7,7 +7,7 @@
 #Default is x64
 
 CPPC=clang++
-GCCOPTIONS=-fPIC -Wall --std=c++14 -O3
+GCCOPTIONS=-fPIC -Wall --std=c++1z -O3
 
 CC=clang
 CCOPTIONS=-fPIC -Wall -O3
@@ -85,13 +85,16 @@ Linux/$(OBJFOLDER)/%.o: Linux/%.cpp
 Linux/$(OBJFOLDER)/%.o: Linux/libevdev/%.c
 	mkdir -p Linux/$(OBJFOLDER) && cd Linux/$(OBJFOLDER) && $(CC) $(CCOPTIONS) -Wno-parentheses -Wno-switch -c $(patsubst Linux/%, ../%, $<)
 
-InteropDLL/$(OBJFOLDER)/$(SHAREDLIB): $(SEVENZIPOBJ) $(LUAOBJ) $(UTILOBJ) $(COREOBJ) $(LIBEVDEVOBJ) $(LINUXOBJ) InteropDLL/ConsoleWrapper.cpp InteropDLL/DebugWrapper.cpp
+InteropDLL/$(OBJFOLDER)/$(SHAREDLIB): $(SEVENZIPOBJ) $(LUAOBJ) $(UTILOBJ) $(COREOBJ) InteropDLL/ConsoleWrapper.cpp InteropDLL/DebugWrapper.cpp
 	mkdir -p InteropDLL/$(OBJFOLDER)
 	ar -rcs InteropDLL/$(OBJFOLDER)/libSevenZip.a $(SEVENZIPOBJ)
 	ar -rcs InteropDLL/$(OBJFOLDER)/libLua.a $(LUAOBJ)
-	ar -rcs InteropDLL/$(OBJFOLDER)/libMesenLinux.a $(LINUXOBJ) $(LIBEVDEVOBJ)
 	ar -rcs InteropDLL/$(OBJFOLDER)/libUtilities.a $(UTILOBJ)
 	ar -rcs InteropDLL/$(OBJFOLDER)/libCore.a $(COREOBJ)
+	cd InteropDLL/$(OBJFOLDER) && $(CPPC) $(GCCOPTIONS) -Wno-parentheses -Wno-switch -shared -o $(SHAREDLIB) -L . -lCore -lUtilities -lLua -lSevenZip -pthread -lSDL2 -lboost_filesystem
+
+linux: InteropDLL/$(OBJFOLDER)/$(SHAREDLIB) $(LINUXOBJ) $(LIBEVDEVOBJ)
+	ar -rcs InteropDLL/$(OBJFOLDER)/libMesenLinux.a $(LINUXOBJ) $(LIBEVDEVOBJ)
 	cd InteropDLL/$(OBJFOLDER) && $(CPPC) $(GCCOPTIONS) -Wl,-z,defs -Wno-parentheses -Wno-switch -shared -o $(SHAREDLIB) ../*.cpp -L . -lMesenLinux -lCore -lUtilities -lLua -lSevenZip -pthread -lSDL2 -lstdc++fs
 
 run:

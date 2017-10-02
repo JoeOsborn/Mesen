@@ -1,8 +1,8 @@
 #include "stdafx.h"
 
 //TODO: Use non-experimental namespace (once it is officially supported by VC & GCC)
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
+#include "boost/filesystem.hpp"
+namespace fs = boost::filesystem;
 
 #include <unordered_set>
 #include <algorithm>
@@ -119,24 +119,24 @@ string FolderUtilities::GetRecentGamesFolder()
 
 void FolderUtilities::CreateFolder(string folder)
 {
-	fs::create_directory(fs::u8path(folder));
+	fs::create_directory(fs::path(folder));
 }
 
 vector<string> FolderUtilities::GetFolders(string rootFolder)
 {
 	vector<string> folders;
 
-	if(!fs::is_directory(fs::u8path(rootFolder))) {
+	if(!fs::is_directory(fs::path(rootFolder))) {
 		return folders;
 	} 
-
-	for(fs::recursive_directory_iterator i(fs::u8path(rootFolder)), end; i != end; i++) {
+  fs::path path(rootFolder);
+	for(fs::recursive_directory_iterator i(path), end; i != end; i++) {
 		if(i.depth() > 1) {
 			//Prevent excessive recursion
 			i.disable_recursion_pending();
 		} else {
 			if(fs::is_directory(i->path())) {
-				folders.push_back(i->path().u8string());
+				folders.push_back(i->path().string());
 			}
 		}
 	}
@@ -149,7 +149,7 @@ vector<string> FolderUtilities::GetFilesInFolder(string rootFolder, std::unorder
 	vector<string> files;
 	vector<string> folders = { { rootFolder } };
 
-	if(!fs::is_directory(fs::u8path(rootFolder))) {
+	if(!fs::is_directory(fs::path(rootFolder))) {
 		return files;
 	}
 
@@ -160,11 +160,11 @@ vector<string> FolderUtilities::GetFilesInFolder(string rootFolder, std::unorder
 	}
 
 	for(string folder : folders) {
-		for(fs::directory_iterator i(fs::u8path(folder.c_str())), end; i != end; i++) {
-			string extension = i->path().extension().u8string();
+		for(fs::directory_iterator i(fs::path(folder.c_str())), end; i != end; i++) {
+			string extension = i->path().extension().string();
 			std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
 			if(extensions.find(extension) != extensions.end()) {
-				files.push_back(i->path().u8string());
+				files.push_back(i->path().string());
 			}
 		}
 	}
@@ -174,24 +174,24 @@ vector<string> FolderUtilities::GetFilesInFolder(string rootFolder, std::unorder
 
 string FolderUtilities::GetFilename(string filepath, bool includeExtension)
 {
-	fs::path filename = fs::u8path(filepath).filename();
+	fs::path filename = fs::path(filepath).filename();
 	if(!includeExtension) {
 		filename.replace_extension("");
 	}
-	return filename.u8string();
+	return filename.string();
 }
 
 string FolderUtilities::GetFolderName(string filepath)
 {
-	return fs::u8path(filepath).remove_filename().u8string();
+	return fs::path(filepath).remove_filename().string();
 }
 
 string FolderUtilities::CombinePath(string folder, string filename)
 {
-	return (fs::u8path(folder) / fs::u8path(filename)).u8string();
+	return (fs::path(folder) / fs::path(filename)).string();
 }
 
 int64_t FolderUtilities::GetFileModificationTime(string filepath)
 {
-	return fs::last_write_time(fs::u8path(filepath)).time_since_epoch() / std::chrono::seconds(1);
+	return std::chrono::seconds(fs::last_write_time(fs::path(filepath))) / std::chrono::seconds(1);
 }
