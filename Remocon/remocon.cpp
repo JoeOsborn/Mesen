@@ -14,12 +14,19 @@
 #include <Core/DefaultVideoFilter.h>
 #include <Utilities/FolderUtilities.h>
 #include <Core/SoundMixer.h>
+#include <Core/IKeyManager.h>
+#include <Core/ControlManager.h>
+#include <Core/BaseControlDevice.h>
 
-void RunOneFrame(int p1btns, int p2btns) {
+void RunOneFrame(uint8_t p1, uint8_t p2) {
+  ControlManager::GetControlDevice(0)->OverrideState(p1);
+  ControlManager::GetControlDevice(1)->OverrideState(p2);
   int curFrame = PPU::GetFrameCount();
-  while (PPU::GetFrameCount() == curFrame) {
+  while(PPU::GetFrameCount() == curFrame) {
     Console::RunOneStep();
   }
+  ControlManager::GetControlDevice(0)->OverrideClear();
+  ControlManager::GetControlDevice(1)->OverrideClear();
 }
 
 int main(int argc, char**argv) {
@@ -28,27 +35,27 @@ int main(int argc, char**argv) {
   FolderUtilities::SetHomeFolder("./");
   EmulationSettings::SetFlags(EmulationFlags::DisableGameDatabase);
   EmulationSettings::SetFlags(EmulationFlags::ForceMaxSpeed);
+  EmulationSettings::SetControllerType(0, ControllerType::StandardController);
+  EmulationSettings::SetControllerType(1, ControllerType::StandardController);
   Console::Pause();
+  // TODO: ensure everything inside here is getting turned off correctly
   if(!Console::LoadROM(std::string(argv[1]))) {
     std::fwrite(">SROM not opened!\0", sizeof(uint8_t), 18, stdout);
     return -1;
   }
   auto filter = DefaultVideoFilter();
-  {
-      auto ippu = Console::Instrument();
-      Console::Resume();
-      std::fwrite("<",sizeof(uint8_t),1,stdout);
-      int start_frame = -1;
-      for(int i = 0; i < 120; i++) {
-        RunOneFrame(0,0);
-      }
-      uint16_t *fb = (uint16_t*)calloc(sizeof(uint8_t), PPU::OutputBufferSize);
-      ippu->CopyFrame((uint8_t*)fb);
-      // Run it through a DefaultVideoFilter or NtscFilter
-      filter.SendFrame(fb);
-      // Dump it to file
-      filter.TakeScreenshot(VideoFilterType::None, "out.png", NULL);
+  auto ippu = Console::Instrument();
+  Console::Resume();
+  std::fwrite("<\0",sizeof(uint8_t),2,stdout);
+  for(int i = 0; i < 60; i++) {
+    RunOneFrame(i % 2 == 0 ? (1 << 3) : (1 << 0), 0);
   }
+  uint16_t *fb = (uint16_t*)calloc(sizeof(uint8_t), PPU::OutputBufferSize);
+  ippu->CopyFrame((uint8_t*)fb);
+  // Run it through a DefaultVideoFilter or NtscFilter
+  filter.SendFrame(fb);
+  // Dump it to file
+  filter.TakeScreenshot(VideoFilterType::None, "out.png", NULL);
   Console::Halt();
   return 0;
 }

@@ -46,6 +46,8 @@ protected:
 	uint32_t _turboSpeed = 0;
 	bool _famiconDevice = false;
 
+  bool _override;
+
 	uint8_t GetPort();
 	void AddKeyMappings(KeyMappingSet keyMappings);
 
@@ -69,4 +71,8 @@ public:
 
 	//Used by standard controllers when $4017.1 is set
 	virtual void RefreshStateBuffer();
+
+  void OverrideState(uint8_t st);
+  void OverrideClear();
+  
 };

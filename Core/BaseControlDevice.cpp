@@ -13,6 +13,7 @@ BaseControlDevice::BaseControlDevice(uint8_t port)
 {
 	_port = port;
 	_famiconDevice = EmulationSettings::GetConsoleType() == ConsoleType::Famicom;
+  _override = false;
 	if(EmulationSettings::GetControllerType(port) == ControllerType::StandardController) {
 		AddKeyMappings(EmulationSettings::GetControllerKeys(port));
 	}
@@ -61,7 +62,7 @@ uint8_t BaseControlDevice::ProcessNetPlayState(uint32_t netplayState)
 
 uint8_t BaseControlDevice::GetControlState()
 {
-	GameServerConnection* netPlayDevice = GameServerConnection::GetNetPlayDevice(_port);
+  GameServerConnection* netPlayDevice = GameServerConnection::GetNetPlayDevice(_port);
 	if(RewindManager::IsRewinding()) {
 		_currentState = RewindManager::GetInput(_port);
 	} else if(MovieManager::Playing()) {
@@ -74,10 +75,9 @@ uint8_t BaseControlDevice::GetControlState()
 		_currentState = ProcessNetPlayState(netPlayDevice->GetState());
 	} else if(Debugger::HasInputOverride(_port)) {
 		_currentState = ProcessNetPlayState(Debugger::GetInputOverride(_port));
-	} else {
+  } else if(!_override) {
 		_currentState = RefreshState();
 	}
-
 	if(MovieManager::Recording()) {
 		MovieManager::RecordState(_port, _currentState);
 	}
@@ -88,4 +88,13 @@ uint8_t BaseControlDevice::GetControlState()
 	RewindManager::RecordInput(_port, _currentState);
 
 	return _currentState;
+}
+
+void BaseControlDevice::OverrideState(uint8_t st) {
+  _currentState = st;
+  _override = true;
+}
+
+void BaseControlDevice::OverrideClear() {
+  _override = false;
 }
