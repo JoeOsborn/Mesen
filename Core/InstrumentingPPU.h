@@ -109,7 +109,6 @@ public:
     UpdateGrayscaleAndIntensifyBits();
     _currentOutputBuffer = (_currentOutputBuffer == _outputBuffers[0]) ? _outputBuffers[1] : _outputBuffers[0];
     _enableOamDecay = EmulationSettings::CheckFlag(EmulationFlags::EnableOamDecay);
-    printf("Send!\n");
 	}
 
   void CopyFrame(uint8_t *fb) {

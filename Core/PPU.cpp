@@ -1081,7 +1081,6 @@ void PPU::Exec()
 			_statusFlags.SpriteOverflow = false;
 			_statusFlags.Sprite0Hit = false;
 		} else if(_scanline == _nmiScanline) {
-      printf("VB\n");
 			BeginVBlank();
 		}
 	} else {

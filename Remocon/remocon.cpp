@@ -15,6 +15,13 @@
 #include <Utilities/FolderUtilities.h>
 #include <Core/SoundMixer.h>
 
+void RunOneFrame(int p1btns, int p2btns) {
+  int curFrame = PPU::GetFrameCount();
+  while (PPU::GetFrameCount() == curFrame) {
+    Console::RunOneStep();
+  }
+}
+
 int main(int argc, char**argv) {
   //SET_BINARY_MODE(stdin);
   //SET_BINARY_MODE(stdout);
@@ -31,24 +38,14 @@ int main(int argc, char**argv) {
       auto ippu = Console::Instrument();
       Console::Resume();
       std::fwrite("<",sizeof(uint8_t),1,stdout);
-      for(int i = 0; i < 600000; i++) {
-        Console::RunOneStep();
+      int start_frame = -1;
+      for(int i = 0; i < 120; i++) {
+        RunOneFrame(0,0);
       }
       uint16_t *fb = (uint16_t*)calloc(sizeof(uint8_t), PPU::OutputBufferSize);
       ippu->CopyFrame((uint8_t*)fb);
-      printf("\n");
-      for(int i = 0; i < PPU::ScreenHeight; i+=4) {
-        for(int j = 0; j < PPU::ScreenWidth; j+=4) {
-          int idx = i*PPU::ScreenWidth+j;
-          printf("%d",fb[idx]);
-        }
-        printf("\n");
-      }
-      //diagnose fb, make sure the pattern is right
       // Run it through a DefaultVideoFilter or NtscFilter
       filter.SendFrame(fb);
-      uint8_t *outputb = filter.GetOutputBuffer();
-      //diagnose
       // Dump it to file
       filter.TakeScreenshot(VideoFilterType::None, "out.png", NULL);
   }
