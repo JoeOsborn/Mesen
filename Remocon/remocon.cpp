@@ -1,4 +1,6 @@
 #include <cstdio>
+#include <iostream>
+
 #ifdef _WIN32
 # include <io.h>
 # include <fcntl.h>
@@ -55,7 +57,36 @@ int main(int argc, char**argv) {
   // Run it through a DefaultVideoFilter or NtscFilter
   filter.SendFrame(fb);
   // Dump it to file
-  filter.TakeScreenshot(VideoFilterType::None, "out.png", NULL);
+  filter.TakeScreenshot(VideoFilterType::None, "out1.png", NULL);
+
+  stringstream state;
+  Console::SaveState(state);
+  state.seekg(0, ios::beg);
+  
+  for(int i = 0; i < 240; i++) {
+    RunOneFrame(1 << 7 | 1 << 1, 0);
+  }
+  ippu->CopyFrame((uint8_t*)fb);
+  // Run it through a DefaultVideoFilter or NtscFilter
+  filter.SendFrame(fb);
+  // Dump it to file
+  filter.TakeScreenshot(VideoFilterType::None, "out2.png", NULL);
+
+  Console::LoadState(state);
+  ippu->CopyFrame((uint8_t*)fb);
+  // Run it through a DefaultVideoFilter or NtscFilter
+  filter.SendFrame(fb);
+  // Dump it to file
+  filter.TakeScreenshot(VideoFilterType::None, "out3.png", NULL);
+
+  RunOneFrame(0, 0);
+  ippu->SendFrame();
+  ippu->CopyFrame((uint8_t*)fb);
+  // Run it through a DefaultVideoFilter or NtscFilter
+  filter.SendFrame(fb);
+  // Dump it to file
+  filter.TakeScreenshot(VideoFilterType::None, "out4.png", NULL);
+    
   Console::Halt();
   return 0;
 }
