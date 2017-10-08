@@ -7,10 +7,10 @@
 #Default is x64
 
 CPPC=clang++
-GCCOPTIONS=-fPIC -Wall --std=c++1z -O3
+GCCOPTIONS=-fPIC -Wall --std=c++1z -g
 
 CC=clang
-CCOPTIONS=-fPIC -Wall -O3
+CCOPTIONS=-fPIC -Wall -g
 
 ifeq ($(MESENPLATFORM),x86)
 	MESENPLATFORM=x86
@@ -30,6 +30,7 @@ RELEASEFOLDER=bin/$(MESENPLATFORM)/Release
 COREOBJ=$(patsubst Core/%.cpp,Core/$(OBJFOLDER)/%.o,$(wildcard Core/*.cpp))
 UTILOBJ=$(patsubst Utilities/%.cpp,Utilities/$(OBJFOLDER)/%.o,$(wildcard Utilities/*.cpp)) $(patsubst Utilities/HQX/%.cpp,Utilities/$(OBJFOLDER)/%.o,$(wildcard Utilities/HQX/*.cpp)) $(patsubst Utilities/xBRZ/%.cpp,Utilities/$(OBJFOLDER)/%.o,$(wildcard Utilities/xBRZ/*.cpp)) $(patsubst Utilities/KreedSaiEagle/%.cpp,Utilities/$(OBJFOLDER)/%.o,$(wildcard Utilities/KreedSaiEagle/*.cpp)) $(patsubst Utilities/Scale2x/%.cpp,Utilities/$(OBJFOLDER)/%.o,$(wildcard Utilities/Scale2x/*.cpp))
 LINUXOBJ=$(patsubst Linux/%.cpp,Linux/$(OBJFOLDER)/%.o,$(wildcard Linux/*.cpp)) 
+REMOCONOBJ=$(patsubst Remocon/%.cpp,Remocon/$(OBJFOLDER)/%.o,$(wildcard Remocon/*.cpp)) 
 LIBEVDEVOBJ=$(patsubst Linux/libevdev/%.c,Linux/$(OBJFOLDER)/%.o,$(wildcard Linux/libevdev/*.c))
 SEVENZIPOBJ=$(patsubst SevenZip/%.c,SevenZip/$(OBJFOLDER)/%.o,$(wildcard SevenZip/*.c))
 LUAOBJ=$(patsubst Lua/%.c,Lua/$(OBJFOLDER)/%.o,$(wildcard Lua/*.c))
@@ -97,15 +98,22 @@ linux: InteropDLL/$(OBJFOLDER)/$(SHAREDLIB) $(LINUXOBJ) $(LIBEVDEVOBJ)
 	ar -rcs InteropDLL/$(OBJFOLDER)/libMesenLinux.a $(LINUXOBJ) $(LIBEVDEVOBJ)
 	cd InteropDLL/$(OBJFOLDER) && $(CPPC) $(GCCOPTIONS) -Wl,-z,defs -Wno-parentheses -Wno-switch -shared -o $(SHAREDLIB) ../*.cpp -L . -lMesenLinux -lCore -lUtilities -lLua -lSevenZip -pthread -lSDL2 -lstdc++fs
 
+Remocon/$(OBJFOLDER)/%.o: Remocon/%.cpp
+	mkdir -p Remocon/$(OBJFOLDER) && cd Remocon/$(OBJFOLDER) && $(CPPC) $(GCCOPTIONS) -I ../../ -Wno-parentheses -Wno-switch -c $(patsubst Remocon/%, ../%, $<)
+
+remocon: InteropDLL/$(OBJFOLDER)/$(SHAREDLIB) $(REMOCONOBJ)
+	cd Remocon/$(OBJFOLDER) && $(CPPC) $(GCCOPTIONS) *.o -L ../../InteropDLL/$(OBJFOLDER)/ -lCore -lLua -lSevenZip -lUtilities -lboost_filesystem -lboost_system -o remocon
+
 run:
 	MONO_LOG_LEVEL=debug mono $(RELEASEFOLDER)/Mesen.exe
 
 clean:
-	rm Lua/$(OBJFOLDER) -r -f
-	rm SevenZip/$(OBJFOLDER) -r -f
-	rm Utilities/$(OBJFOLDER) -r -f
-	rm Core/$(OBJFOLDER) -r -f
-	rm Linux/$(OBJFOLDER) -r -f
-	rm InteropDLL/$(OBJFOLDER) -r -f
-	rm TestHelper/$(OBJFOLDER) -r -f
-	rm $(RELEASEFOLDER) -r -f
+	rm -rf Core/$(OBJFOLDER)
+	rm -rf InteropDLL/$(OBJFOLDER)
+	rm -rf Remocon/$(OBJFOLDER)
+	rm -rf Lua/$(OBJFOLDER)
+	rm -rf SevenZip/$(OBJFOLDER)
+	rm -rf Utilities/$(OBJFOLDER) 
+	rm -rf Linux/$(OBJFOLDER)
+	rm -rf TestHelper/$(OBJFOLDER) 
+	rm -rf $(RELEASEFOLDER)

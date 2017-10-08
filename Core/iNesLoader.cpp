@@ -102,8 +102,9 @@ RomData iNesLoader::LoadRom(vector<uint8_t>& romFile, NESHeader *preloadedHeader
 	if(romData.HasTrainer) {
 		MessageManager::Log("[iNes] Trainer: Yes");
 	}
-
-	GameDatabase::SetGameInfo(romData.PrgChrCrc32, romData, !EmulationSettings::CheckFlag(EmulationFlags::DisableGameDatabase) && header.GetRomHeaderVersion() != RomHeaderVersion::Nes2_0);
+  if(!EmulationSettings::CheckFlag(EmulationFlags::DisableGameDatabase)) {
+    GameDatabase::SetGameInfo(romData.PrgChrCrc32, romData, !EmulationSettings::CheckFlag(EmulationFlags::DisableGameDatabase) && header.GetRomHeaderVersion() != RomHeaderVersion::Nes2_0);
+  }
 
 	return romData;
 }

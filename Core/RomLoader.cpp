@@ -58,7 +58,8 @@ bool RomLoader::LoadFile(string filename, vector<uint8_t> &fileData)
 		_romData = loader.LoadRom(fileData);
 	} else {
 		NESHeader header = {};
-		if(GameDatabase::GetiNesHeader(crc, header)) {
+		if(!EmulationSettings::CheckFlag(EmulationFlags::DisableGameDatabase) &&
+       GameDatabase::GetiNesHeader(crc, header)) {
 			MessageManager::Log("[DB] Headerless ROM file found - using game database data.");
 			iNesLoader loader;
 			_romData = loader.LoadRom(fileData, &header);

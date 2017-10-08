@@ -17,6 +17,7 @@ class ControlManager;
 class AutoSaveManager;
 class HdPackBuilder;
 class HdAudioDevice;
+class InstrumentingPpu;
 struct HdPackData;
 enum class NesModel;
 enum class ScaleFilterType;
@@ -65,6 +66,7 @@ class Console
 		bool Initialize(VirtualFile &romFile, VirtualFile &patchFile);
 		void UpdateNesModel(bool sendNotification);
 		double GetFrameDelay();
+    void Shutdown();
 
 	public:
 		Console();
@@ -112,6 +114,11 @@ class Console
 		static void StartRecordingHdPack(string saveFolder, ScaleFilterType filterType, uint32_t scale, uint32_t flags, uint32_t chrRamBankSize);
 		static void StopRecordingHdPack();
 
+    static shared_ptr<InstrumentingPpu> Instrument();
+    static void Halt();
+
 		static shared_ptr<Console> GetInstance();
 		static void Release();
+
+    static void RunOneStep();
 };

@@ -20,6 +20,7 @@
 #include "../Utilities/PlatformUtilities.h"
 #include "VirtualFile.h"
 #include "HdBuilderPpu.h"
+#include "InstrumentingPPU.h"
 #include "HdPpu.h"
 #include "NsfPpu.h"
 #include "SoundMixer.h"
@@ -90,7 +91,7 @@ bool Console::Initialize(VirtualFile &romFile, VirtualFile &patchFile)
 			_patchFilename = patchFile;
 
 			_autoSaveManager.reset(new AutoSaveManager());
-			VideoDecoder::GetInstance()->StopThread();
+			//VideoDecoder::GetInstance()->StopThread();
 			
 			_mapper = mapper;
 			_memoryManager.reset(new MemoryManager(_mapper));
@@ -132,9 +133,9 @@ bool Console::Initialize(VirtualFile &romFile, VirtualFile &patchFile)
 
 			ResetComponents(false);
 
-			_rewindManager.reset(new RewindManager());
+			//_rewindManager.reset(new RewindManager());
 
-			VideoDecoder::GetInstance()->StartThread();
+			//VideoDecoder::GetInstance()->StartThread();
 
 			FolderUtilities::AddKnownGameFolder(romFile.GetFolderPath());
 
@@ -330,6 +331,10 @@ void Console::Resume()
 	}
 }
 
+void Console::RunOneStep() {
+  Console::Instance->_cpu->Exec();
+}
+
 void Console::Run()
 {
 	Timer clockTimer;
@@ -445,39 +450,39 @@ void Console::Run()
 	if(!crashed) {
 		SaveStateManager::SaveRecentGame(_mapper->GetRomName(), _romFilepath, _patchFilename);
 	}
-
-	_rewindManager.reset();
+	VideoDecoder::GetInstance()->StopThread();
+	PlatformUtilities::EnableScreensaver();
+  _rewindManager.reset();
+	_autoSaveManager.reset();
 	StopRecordingHdPack();
+	_stopLock.Release();
+	_runLock.Release();
+	_hdPackBuilder.reset();
+	_hdData.reset();
+
+  this->Shutdown();
+}
+
+void Console::Halt() {
+  Console::Instance->Shutdown();
+}
+
+void Console::Shutdown() {
 	SoundMixer::StopAudio();
 	MovieManager::Stop();
 	SoundMixer::StopRecording();
-	PlatformUtilities::EnableScreensaver();
-
-	_autoSaveManager.reset();
-
-	VideoDecoder::GetInstance()->StopThread();
-
 	EmulationSettings::ClearFlags(EmulationFlags::Paused);
-
 	_initialized = false;
-
 	if(!_romFilepath.empty() && _mapper) {
 		//Ensure we save any battery file before unloading anything
 		_mapper->SaveBattery();
 	}
-
 	_romFilepath = "";
 	_mapper.reset();
 	_ppu.reset();
 	_cpu.reset();
 	_memoryManager.reset();
 	_controlManager.reset();
-
-	_hdPackBuilder.reset();
-	_hdData.reset();
-
-	_stopLock.Release();
-	_runLock.Release();
 
 	MessageManager::SendNotification(ConsoleNotificationType::GameStopped);
 }
@@ -676,6 +681,24 @@ void Console::StartRecordingHdPack(string saveFolder, ScaleFilterType filterType
 	Instance->LoadState(saveState);
 	Console::Resume();
 }
+
+std::shared_ptr<InstrumentingPpu> Console::Instrument()
+{
+	Console::Pause();
+	std::stringstream saveState;
+	Instance->SaveState(saveState);
+	
+	Instance->_memoryManager->UnregisterIODevice(Instance->_ppu.get());
+	Instance->_ppu.reset();
+  auto ippu = new InstrumentingPpu(Instance->_mapper.get());
+	Instance->_ppu.reset(ippu);
+	Instance->_memoryManager->RegisterIODevice(Instance->_ppu.get());
+
+	Instance->LoadState(saveState);
+	Console::Resume();
+  return std::static_pointer_cast<InstrumentingPpu>(Instance->_ppu);
+}
+
 
 void Console::StopRecordingHdPack()
 {
