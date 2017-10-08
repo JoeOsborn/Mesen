@@ -1183,6 +1183,11 @@ void PPU::StreamState(bool saving)
 		Stream(_spriteTiles[i].SpriteX, _spriteTiles[i].LowByte, _spriteTiles[i].HighByte, _spriteTiles[i].PaletteOffset, _spriteTiles[i].HorizontalMirror, _spriteTiles[i].BackgroundPriority);
 	}
 
+  uint8_t is_first = (uint8_t)(_currentOutputBuffer == _outputBuffers[0]);
+  ArrayInfo<uint8_t> ob0 = {(uint8_t*)(_outputBuffers[0]), PPU::OutputBufferSize};
+  ArrayInfo<uint8_t> ob1 = {(uint8_t*)(_outputBuffers[1]), PPU::OutputBufferSize};
+  Stream(ob0, ob1, is_first);
+
 	if(!saving) {
 		EmulationSettings::SetFlagState(EmulationFlags::DisablePpu2004Reads, disablePpu2004Reads);
 		EmulationSettings::SetFlagState(EmulationFlags::DisablePaletteRead, disablePaletteRead);
@@ -1200,8 +1205,11 @@ void PPU::StreamState(bool saving)
 			_hasSprite[i] = true;
 		}
 
+    _currentOutputBuffer = _outputBuffers[is_first ? 0 : 1];
+
 		_lastUpdatedPixel = -1;
 
 		UpdateApuStatus();
+    SendFrame();
 	}
 }

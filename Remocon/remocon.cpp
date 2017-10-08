@@ -67,26 +67,15 @@ int main(int argc, char**argv) {
     RunOneFrame(1 << 7 | 1 << 1, 0);
   }
   ippu->CopyFrame((uint8_t*)fb);
-  // Run it through a DefaultVideoFilter or NtscFilter
   filter.SendFrame(fb);
-  // Dump it to file
   filter.TakeScreenshot(VideoFilterType::None, "out2.png", NULL);
 
   Console::LoadState(state);
+  SaveScreenshot()
   ippu->CopyFrame((uint8_t*)fb);
-  // Run it through a DefaultVideoFilter or NtscFilter
   filter.SendFrame(fb);
-  // Dump it to file
   filter.TakeScreenshot(VideoFilterType::None, "out3.png", NULL);
 
-  RunOneFrame(0, 0);
-  ippu->SendFrame();
-  ippu->CopyFrame((uint8_t*)fb);
-  // Run it through a DefaultVideoFilter or NtscFilter
-  filter.SendFrame(fb);
-  // Dump it to file
-  filter.TakeScreenshot(VideoFilterType::None, "out4.png", NULL);
-    
   Console::Halt();
   return 0;
 }
