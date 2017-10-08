@@ -696,7 +696,7 @@ std::shared_ptr<InstrumentingPpu> Console::Instrument()
 
 	Instance->LoadState(saveState);
 	Console::Resume();
-  return std::static_pointer_cast<InstrumentingPpu>(Instance->_ppu);
+  return std::dynamic_pointer_cast<InstrumentingPpu>(Instance->_ppu);
 }
 
 

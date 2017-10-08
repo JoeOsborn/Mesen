@@ -58,9 +58,31 @@ struct HdTileKey
 		return result;
 	}
 
-	bool IsSpriteTile()
+	bool IsSpriteTile() const
 	{
 		return (PaletteColors & 0xFF000000) == 0xFF000000;
+	}
+
+  vector<uint32_t> ToRgb() const
+	{
+		vector<uint32_t> rgbBuffer;
+		uint32_t* palette = EmulationSettings::GetRgbPalette();
+		for(uint8_t i = 0; i < 8; i++) {
+			uint8_t lowByte = TileData[i];
+			uint8_t highByte = TileData[i + 8];
+			for(uint8_t j = 0; j < 8; j++) {
+				uint8_t color = ((lowByte >> (7 - j)) & 0x01) | (((highByte >> (7 - j)) & 0x01) << 1);
+				uint32_t rgbColor;
+				if(IsSpriteTile()) {
+					rgbColor = color == 0 ? 0x00FFFFFF : palette[(PaletteColors >> ((3 - color) * 8)) & 0x3F];
+				} else {
+					rgbColor = palette[(PaletteColors >> ((3 - color) * 8)) & 0x3F];
+				}
+				rgbBuffer.push_back(rgbColor);
+			}
+		}
+
+		return rgbBuffer;
 	}
 };
 
@@ -254,28 +276,6 @@ struct HdPackTileInfo : public HdTileKey
 			}
 		}
 		return true;
-	}
-
-	vector<uint32_t> ToRgb()
-	{
-		vector<uint32_t> rgbBuffer;
-		uint32_t* palette = EmulationSettings::GetRgbPalette();
-		for(uint8_t i = 0; i < 8; i++) {
-			uint8_t lowByte = TileData[i];
-			uint8_t highByte = TileData[i + 8];
-			for(uint8_t j = 0; j < 8; j++) {
-				uint8_t color = ((lowByte >> (7 - j)) & 0x01) | (((highByte >> (7 - j)) & 0x01) << 1);
-				uint32_t rgbColor;
-				if(IsSpriteTile() || TransparencyRequired) {
-					rgbColor = color == 0 ? 0x00FFFFFF : palette[(PaletteColors >> ((3 - color) * 8)) & 0x3F];
-				} else {
-					rgbColor = palette[(PaletteColors >> ((3 - color) * 8)) & 0x3F];
-				}
-				rgbBuffer.push_back(rgbColor);
-			}
-		}
-
-		return rgbBuffer;
 	}
 
 	void UpdateFlags()
