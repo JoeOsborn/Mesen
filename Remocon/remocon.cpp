@@ -60,15 +60,17 @@ int main_test(int argc, char**argv) {
   EmulationSettings::SetControllerType(0, ControllerType::StandardController);
   EmulationSettings::SetControllerType(1, ControllerType::StandardController);
   Console::Pause();
-  // TODO: ensure everything inside here is getting turned off correctly
+  if(argc < 2) {
+    std::cerr << "Not enough arguments, please include a ROM file path!\n";
+    abort();
+  }
   if(!Console::LoadROM(std::string(argv[1]))) {
-    std::fwrite(">SROM not opened!\0", sizeof(uint8_t), 18, stdout);
-    return -1;
+    std::cerr << std::string(argv[1])+" SROM not opened!\n";
+    abort();
   }
   auto filter = DefaultVideoFilter();
   auto ippu = Console::Instrument();
   Console::Resume();
-  std::fwrite("<",sizeof(uint8_t),1,stdout);
   for(int i = 0; i < 60; i++) {
     RunOneFrame(i % 2 == 0 ? (1 << 3) : (1 << 0), 0);
   }
@@ -167,13 +169,19 @@ enum InfoMask {
   ReservedB=1<<6,
   ReservedC=1<<7
 };
+// "Framebuffers" are always 256*240*4 bytes
+// "NewTiles, NewSpriteTiles, TilesSoFar, SpriteTilesSoFar" are a length L, then L 268 byte sequences (4+4+4+(8*8*4))
+// "TilesByPixel" is 256*240 units of int32 hash x Xscroll x Yscroll
+// "LiveSprites" is a count C followed by C 6-byte sequences (int32 hash x Xpos x Ypos)
 
 enum CtrlCommand {
-  Step, //Infos NumPlayers BytesPerPlayer NumMovesMSB NumMovesLSB
-  GetState,
-  LoadState,
-  GetTilesSoFar,
-  GetSpriteTilesSoFar
+  Step=0, //Infos NumPlayers BytesPerPlayer NumMovesMSB NumMovesLSB
+          // -> steps emu. One FB, NewTiles, NewSpriteTiles per move; one TilesByPixel, LiveSprites at end of sequence 
+  GetState=1, // -> state length, state
+  LoadState=2, //LoadState, infos, statelen, statebuf
+               // -> loads state; if infos & FB, sends framebuffer
+  GetTilesSoFar=3,
+  GetSpriteTilesSoFar=4
 };
 
 void BlastOneTile(HdTileKey t, std::ostream &strm) {
@@ -206,11 +214,8 @@ void SendFramebuffer(std::shared_ptr<InstrumentingPpu> ippu, DefaultVideoFilter 
   FrameInfo fi = filter.GetFrameInfo();
   uint8_t *outputBuffer = filter.GetOutputBuffer();
   size_t bufSize = fi.Width*fi.Height*fi.BitsPerPixel;
-  size_t written = std::fwrite(outputBuffer, sizeof(uint8_t), bufSize, stdout);
-  if(written < bufSize) {
-    std::cerr << "Couldn't write enough bytes for FB\n";
-    abort();
-  }
+  stream.write((const char *)outputBuffer, sizeof(uint8_t)*bufSize);
+  //TODO: check stream error flags??
 }
 
 void SendReady(std::ostream &str) {
@@ -227,9 +232,12 @@ int main(int argc, char**argv) {
   EmulationSettings::SetControllerType(0, ControllerType::StandardController);
   EmulationSettings::SetControllerType(1, ControllerType::StandardController);
   Console::Pause();
-  // TODO: ensure everything inside here is getting turned off correctly
+  if(argc < 2) {
+    std::cerr << "Not enough arguments, please include a ROM file path!\n";
+    abort();
+  }
   if(!Console::LoadROM(std::string(argv[1]))) {
-    std::cerr << "SROM not opened!\n";
+    std::cerr << std::string(argv[1])+" SROM not opened!\n";
     abort();
   }
   auto filter = DefaultVideoFilter();
@@ -315,7 +323,7 @@ int main(int argc, char**argv) {
           }
         }
         //Flush after each step so the other side can read read read
-        std::fflush(stdout);
+        std::cout.flush();
       }
       //once per Step call
       if(infos & NewTiles) {
