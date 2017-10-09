@@ -54,9 +54,17 @@ public:
   // Aggregate info
   std::unordered_set<HdTileKey> allTiles;
   std::unordered_set<HdTileKey> allSpriteTiles;
+  std::vector<HdTileKey> newTiles;
+  std::vector<HdTileKey> newSpriteTiles;
+  void ResetNewTiles();
+  void ResetNewSpriteTiles();
 
   // Per-frame info
   HdPpuTileInfo tile, sprite;
   InstPixelData tileData[PPU::PixelCount];
   InstSpriteData spriteData[0x100];
+
+  size_t GetSpriteCount() {
+    return _spriteCount;
+  }
 };

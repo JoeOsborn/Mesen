@@ -49,6 +49,7 @@ struct HdTileKey
 
 	uint32_t CalculateHash(const uint8_t* key, size_t len) const
 	{
+    //TODO: incorporate TileData??
 		uint32_t result = 0;
 		for(size_t i = 0; i < len; i += 4) {
 			result += *((uint32_t*)key);
