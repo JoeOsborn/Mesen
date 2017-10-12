@@ -68,7 +68,7 @@ int main_test(int argc, char**argv) {
     std::cerr << std::string(argv[1])+" SROM not opened!\n";
     abort();
   }
-  auto filter = DefaultVideoFilter();
+  auto filter(DefaultVideoFilter());
   auto ippu = Console::Instrument();
   Console::Resume();
   for(int i = 0; i < 60; i++) {
