@@ -102,7 +102,7 @@ Remocon/$(OBJFOLDER)/%.o: Remocon/%.cpp
 	mkdir -p Remocon/$(OBJFOLDER) && cd Remocon/$(OBJFOLDER) && $(CPPC) $(GCCOPTIONS) -I ../../ -Wno-parentheses -Wno-switch -c $(patsubst Remocon/%, ../%, $<)
 
 remocon: InteropDLL/$(OBJFOLDER)/$(SHAREDLIB) $(REMOCONOBJ)
-	cd Remocon/$(OBJFOLDER) && $(CPPC) $(GCCOPTIONS) *.o -L ../../InteropDLL/$(OBJFOLDER)/ -lCore -lLua -lSevenZip -lUtilities -lboost_filesystem -lboost_system -o remocon
+	cd Remocon/$(OBJFOLDER) && $(CPPC) $(GCCOPTIONS) *.o -L ../../InteropDLL/$(OBJFOLDER)/ -lCore -lUtilities -lSevenZip -lLua -lboost_filesystem -lboost_system -pthread -o remocon
 
 run:
 	MONO_LOG_LEVEL=debug mono $(RELEASEFOLDER)/Mesen.exe

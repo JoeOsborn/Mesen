@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include <chrono>
 
 //TODO: Use non-experimental namespace (once it is officially supported by VC & GCC)
 #include "boost/filesystem.hpp"
