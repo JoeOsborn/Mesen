@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include <chrono>
 
 //TODO: Use non-experimental namespace (once it is officially supported by VC & GCC)
 #include "boost/filesystem.hpp"
@@ -8,7 +9,7 @@ namespace fs = boost::filesystem;
 #include <algorithm>
 #include "FolderUtilities.h"
 #include "UTF8Util.h"
-
+#include <boost/version.hpp>
 string FolderUtilities::_homeFolder = "";
 string FolderUtilities::_saveFolderOverride = "";
 string FolderUtilities::_saveStateFolderOverride = "";
@@ -129,18 +130,25 @@ vector<string> FolderUtilities::GetFolders(string rootFolder)
 	if(!fs::is_directory(fs::path(rootFolder))) {
 		return folders;
 	} 
-  fs::path path(rootFolder);
+	fs::path path(rootFolder);
 	for(fs::recursive_directory_iterator i(path), end; i != end; i++) {
-		if(i.depth() > 1) {
-			//Prevent excessive recursion
-			i.disable_recursion_pending();
-		} else {
-			if(fs::is_directory(i->path())) {
-				folders.push_back(i->path().string());
-			}
-		}
+	  //if(i.depth() > 1) {
+	  //Prevent excessive recursion
+	  //i.disable_recursion_pending();
+#if BOOST_VERSION >= 105400
+	  if(i.level() > 1) {
+	    i.no_push();
+#else
+	  if(i.depth() > 1) {
+	    i.disable_recursion_pending();
+#endif
+	  } else {
+	    if(fs::is_directory(i->path())) {
+	      folders.push_back(i->path().string());
+	    }
+	  }
 	}
-
+	
 	return folders;
 }
 
