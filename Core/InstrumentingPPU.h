@@ -3,17 +3,40 @@
 #include "PPU.h"
 #include "BaseMapper.h"
 #include "HdData.h"
+#include <set>
+
+struct InstSpriteData
+{
+  HdTileKey key;
+  uint8_t X;
+  uint8_t Y;
+
+  uint32_t GetHashCode() const
+	{
+    return key.GetHashCode() ^ X << 8 ^ Y;
+	}
+
+	bool operator==(const InstSpriteData &other) const
+	{
+		return key == other.key && X == other.X && Y == other.Y;
+	}
+};
+
+namespace std {
+	template <> struct hash<InstSpriteData>
+	{
+		size_t operator()(const InstSpriteData& x) const
+		{
+			return x.GetHashCode();
+		}
+	};
+}
+
 
 struct InstPixelData {
   HdTileKey key;
   uint8_t XScroll;
   uint8_t YScroll;
-};
-
-struct InstSpriteData {
-  HdTileKey key;
-  uint8_t X;
-  uint8_t Y;
 };
 
 class InstrumentingPpu : public PPU
@@ -62,9 +85,11 @@ public:
   // Per-frame info
   HdPpuTileInfo tile, sprite;
   InstPixelData tileData[PPU::PixelCount];
-  InstSpriteData spriteData[0x100];
+  InstSpriteData spriteData[64];
+  int spritesThisFrame;
 
   size_t GetSpriteCount() {
-    return _spriteCount;
+    std::cerr << "SDS " << spritesThisFrame << "\n";
+    return spritesThisFrame;
   }
 };

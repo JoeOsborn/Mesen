@@ -887,7 +887,7 @@ void PPU::ProcessSpriteEvaluation()
 				_spriteAddrL = _state.SpriteRamAddr & 0x03;
 			} else if(_cycle == 256) {
 				_sprite0Visible = _sprite0Added;
-				_spriteCount = (_secondaryOAMAddr >> 2);
+        _spriteCount = (_secondaryOAMAddr >> 2);
 			}
 
 			if(_cycle & 0x01) {

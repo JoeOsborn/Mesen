@@ -129,8 +129,8 @@ int main_test(int argc, char**argv) {
   }
 
   //Later, throw this over the wall in a nice binary format
-  for(int spr = 0; spr < 0x100; spr++) {
-    InstSpriteData sd = ippu->spriteData[spr];
+  for(int i = 0; i < ippu->spritesThisFrame; i++) {
+    InstSpriteData sd = ippu->spriteData[i];
     if(sd.key.TileIndex == HdTileKey::NoTile) {
       continue;
     }
@@ -310,17 +310,24 @@ int main(int argc, char**argv) {
           }
         }
         if(infos & LiveSprites) {
+          //TODO: update all cout << junk to use write or put as needed
           //write sprite data, int32 hashkey + int8 + int8
-          size_t scount = ippu->GetSpriteCount();
-          std::cout << (size_t)scount;
-          for(int i = 0; i < scount; i++) {
+          uint32_t scount = ippu->GetSpriteCount();
+          std::cerr << "Get sprite count " << scount << "\n";
+          scount = htonl(scount);
+          std::cout.write((const char *)&scount, 4);
+          for(int i = 0; i < ippu->spritesThisFrame; i++) {
             //each one is 4+1+1 = 6 bytes
             InstSpriteData pd = ippu->spriteData[i];
             if(pd.key.TileIndex == HdTileKey::NoTile) {
               continue;
             }
-            std::cout << (int32_t)pd.key.GetHashCode() << (uint8_t)pd.X << (uint8_t)pd.Y;
+            int32_t hc = htonl(pd.key.GetHashCode());
+            std::cout.write((const char *)&hc, sizeof(int32_t));
+            std::cout.put((uint8_t)pd.X);
+            std::cout.put((uint8_t)pd.Y);
           }
+          std::cerr << "Done";
         }
         //Flush after each step so the other side can read read read
         std::cout.flush();
@@ -341,7 +348,7 @@ int main(int argc, char**argv) {
       //get file stream position
       stateLen = saveState.tellp();
       //write that to stdout
-      std::cout << (size_t)stateLen;
+      std::cout << (uint32_t)stateLen;
       //then write save state bytes
       saveState.seekg(0, ios::beg);
       std::cout << saveState.rdbuf();

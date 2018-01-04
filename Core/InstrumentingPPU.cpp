@@ -1,14 +1,10 @@
 #include "InstrumentingPPU.h"
-
+ 
 void InstrumentingPpu::DrawPixel()
 {
   if(_scanline <= 0 && _cycle <= 1) {
-    //std::cout << GetFrameCount() << "CLEAR\n";
-    for(int i = 0; i < _spriteCount; i++) {
-      HdTileKey k;
-      k.TileIndex = HdTileKey::NoTile;
-      spriteData[i] = {k,0,0};
-    }
+    std::cerr << GetFrameCount() << " CLEAR\n";
+    spritesThisFrame = 0;
   }
   if(IsRenderingEnabled() || ((_state.VideoRamAddr & 0x3F00) != 0x3F00)) {
 			_lastSprite = nullptr;
@@ -32,18 +28,25 @@ void InstrumentingPpu::DrawPixel()
 				if(_lastSprite->AbsoluteTileAddr >= 0) {
 					sprite.TileIndex = (_isChrRam ? (_lastSprite->TileAddr & _chrRamIndexMask) : _lastSprite->AbsoluteTileAddr) / 16;
 					sprite.PaletteColors = ReadPaletteRAM(_lastSprite->PaletteOffset + 3) | (ReadPaletteRAM(_lastSprite->PaletteOffset + 2) << 8) | (ReadPaletteRAM(_lastSprite->PaletteOffset + 1) << 16) | 0xFF000000;
-					sprite.IsChrRamTile = _isChrRam;
+					sprite.IsChrRamTile = _isChrRam; 
 					for(int i = 0; i < 16; i++) {
 						sprite.TileData[i] = _mapper->GetMemoryValue(DebugMemoryType::ChrRom, _lastSprite->AbsoluteTileAddr / 16 * 16 + i);
 					}
-					ProcessTile(_cycle - 1, _scanline, _lastSprite->AbsoluteTileAddr, sprite, _mapper, true, true);
-          for(uint32_t si = 0; si < _spriteCount; si++) {
-            int32_t shift = (int32_t)_cycle - _spriteTiles[si].SpriteX - 1;
-            if(shift >= 0 && shift < 8) {
-              //std::cout << "store sprite data " << (int)(_spriteRAM[si+3]) << "," << (int)(_spriteRAM[si+0]) << "\n";
-              spriteData[si] = {sprite, _spriteRAM[si+3], _spriteRAM[si+0]};
+          uint8_t spriteY = _scanline - _lastSprite->OffsetY;
+          //spriteData.insert({sprite, _lastSprite->SpriteX, spriteY});
+          InstSpriteData thisSprite = {sprite, _lastSprite->SpriteX, spriteY};
+          bool found = false;
+          for(int i = 0; i < spritesThisFrame; i++) {
+            if(spriteData[i] == thisSprite) {
+              found = true;
+              break;
             }
           }
+          if(!found) {
+            spriteData[spritesThisFrame] = thisSprite;
+            spritesThisFrame++;
+          }
+					ProcessTile(_cycle - 1, _scanline, _lastSprite->AbsoluteTileAddr, sprite, _mapper, true, true);
 				}
 			}
 
