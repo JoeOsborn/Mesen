@@ -121,6 +121,7 @@ class Mesen(object):
         new_tiles = []
         assert self.outp.readinto(cast(bytearray, self.readbuf[:4])) == 4
         how_many = from_uint32(self.readbuf[0:4])
+        print("hm", how_many)
         assert self.outp.readinto(cast(bytearray, self.readbuf[:(how_many * (4 + 4 + 4 + 8 * 8 * 4))])) == (how_many * (4 + 4 + 4 + 8 * 8 * 4))
         read_idx = 0
         for tile_idx in range(how_many):

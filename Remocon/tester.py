@@ -22,8 +22,22 @@ def dump_ppm(buf, fl):
 
 
 remo = Mesen("Remocon/obj.x64/remocon", "mario.nes")
-results = remo.step([[0] * 600], Infos(framebuffer=False))
-results = remo.step([[0] * 1], Infos(framebuffer=True, live_sprites=True, tiles_by_pixel=True))
+results = remo.step([[0] * 600], Infos(framebuffer=False, new_tiles=True, new_sprite_tiles=True))
+print("Steps done")
+assert results[1].new_tiles is not None
+assert results[1].new_sprite_tiles is not None
+if results[1].new_tiles is not None:
+    # expect nonempty
+    assert len(results[1].new_tiles) > 0
+    for t in results[1].new_tiles:
+        dump_ppm(t.pixels, "testout/tt" + str(t.hash) + ".ppm")
+if results[1].new_sprite_tiles is not None:
+    # expect nonempty
+    assert len(results[1].new_sprite_tiles) > 0
+    for t in results[1].new_sprite_tiles:
+        dump_ppm(t.pixels, "testout/st" + str(t.hash) + ".ppm")
+
+results = remo.step([[0] * 1], Infos(framebuffer=True, live_sprites=True, tiles_by_pixel=True, new_tiles=True, new_sprite_tiles=True))
 i = 0
 for pf in results[0]:
     i += 1
@@ -40,6 +54,13 @@ for pf in results[0]:
         for sprite in pf.live_sprites:
             print(sprite.hash, sprite.x, sprite.y)
 
+# Test: new_tiles, new_sprite_tiles
+if results[1].new_tiles is not None:
+    # expect empty
+    assert len(results[1].new_tiles) == 0
+if results[1].new_sprite_tiles is not None:
+    # expect empty
+    assert len(results[1].new_sprite_tiles) == 0
 
 # # wait until READY 0 byte
 # wait_ready()
