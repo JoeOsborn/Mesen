@@ -3,7 +3,7 @@
 void InstrumentingPpu::DrawPixel()
 {
   if(_scanline <= 0 && _cycle <= 1) {
-    std::cerr << GetFrameCount() << " CLEAR\n";
+    //std::cerr << GetFrameCount() << " CLEAR\n";
     spritesThisFrame = 0;
   }
   if(IsRenderingEnabled() || ((_state.VideoRamAddr & 0x3F00) != 0x3F00)) {

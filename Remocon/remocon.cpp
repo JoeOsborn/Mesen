@@ -53,111 +53,6 @@ void WritePPM(string outfile, size_t w, size_t h, size_t bpp, uint8_t*buf) {
   imgOut.flush();
 }
 
-int main_test(int argc, char**argv) {
-  FolderUtilities::SetHomeFolder("./");
-  EmulationSettings::SetFlags(EmulationFlags::DisableGameDatabase);
-  EmulationSettings::SetFlags(EmulationFlags::ForceMaxSpeed);
-  EmulationSettings::SetControllerType(0, ControllerType::StandardController);
-  EmulationSettings::SetControllerType(1, ControllerType::StandardController);
-  Console::Pause();
-  if(argc < 2) {
-    std::cerr << "Not enough arguments, please include a ROM file path!\n";
-    abort();
-  }
-  if(!Console::LoadROM(std::string(argv[1]))) {
-    std::cerr << std::string(argv[1])+" SROM not opened!\n";
-    abort();
-  }
-  DefaultVideoFilter filter;
-  auto ippu = Console::Instrument();
-  Console::Resume();
-  for(int i = 0; i < 60; i++) {
-    RunOneFrame(i % 2 == 0 ? (1 << 3) : (1 << 0), 0);
-  }
-  SaveState();
-  ippu->CopyFrame((uint8_t*)fb);
-  // Run it through a DefaultVideoFilter or NtscFilter
-  filter.SendFrame((uint16_t*)fb);
-  // Dump it to file
-  filter.TakeScreenshot(VideoFilterType::None, "out1.png", NULL);
-
-  for(int i = 0; i < 240; i++) {
-    RunOneFrame(1 << 7 | 1 << 1, 0);
-  }
-  
-  ippu->CopyFrame((uint8_t*)fb);
-  filter.SendFrame((uint16_t*)fb);
-  filter.TakeScreenshot(VideoFilterType::None, "out2.png", NULL);
-
-  //Two kinds of data:
-  //agglomerative data like all witnessed tile and sprite keys
-  //instantaneous data like tilemap, sprite data
-  
-  
-  //Console::LoadState(state_buf, state_buf_length);
-
-  saveState.seekg(0, ios::beg); 
-  Console::LoadState(saveState);
-  saveState.seekg(0, ios::beg);
-  
-  //SaveScreenshot()
-  ippu->CopyFrame((uint8_t*)fb);
-  filter.SendFrame((uint16_t*)fb);
-  FrameInfo fi = filter.GetFrameInfo();
-  uint8_t *outputBuffer = filter.GetOutputBuffer();
-  WritePPM("out4.ppm", fi.Width, fi.Height, fi.BitsPerPixel, outputBuffer);
-
-  int firstThrough = ippu->allTiles.size();
-  std::cout << "Seen tiles:" << firstThrough << "\n";
-  for(int i = 0; i < 300; i++) {
-    RunOneFrame(1 << 7 | 1 << 1 | (i%2 == 0 ? 1 : 0) << 0, 0);
-  }
-  ippu->CopyFrame((uint8_t*)fb);
-  filter.SendFrame((uint16_t*)fb);
-  WritePPM("out5.ppm", fi.Width, fi.Height, fi.BitsPerPixel, filter.GetOutputBuffer());
-
-  //outstream.write(outputBuffer, bufSize) to send the framebufer
-  // it's a little redundant since the save state has it too?
-  //outstream.write(state.rdBuf())
-  for(auto t = ippu->allTiles.begin(); t != ippu->allTiles.end(); t++) {
-    auto rgb = t->ToRgb();
-    WritePPM("tiles/"+std::to_string(t->GetHashCode())+".ppm", 8, 8, 4, (uint8_t*)(rgb.data()));
-  }
-  for(auto t = ippu->allSpriteTiles.begin(); t != ippu->allSpriteTiles.end(); t++) {
-    auto rgb = t->ToRgb();
-    WritePPM("sprites/"+std::to_string(t->GetHashCode())+".ppm", 8, 8, 4, (uint8_t*)(rgb.data()));
-  }
-
-  //Later, throw this over the wall in a nice binary format
-  for(int i = 0; i < ippu->spritesThisFrame; i++) {
-    InstSpriteData sd = ippu->spriteData[i];
-    if(sd.key.TileIndex == HdTileKey::NoTile) {
-      continue;
-    }
-    std::cout << sd.key.TileIndex << " H:" << sd.key.GetHashCode() << " X:" << (int)sd.X << " Y:" << (int)sd.Y << "\n"; 
-  }
-
-  //Ditto this, but use the tileKey (or its hash?) instead of tidx.
-  ofstream dump("screendump.txt");
-  for(int j = 0; j < PPU::ScreenHeight; j++) {
-    for(int i = 0; i < PPU::ScreenWidth; i++) {
-      InstPixelData pd = ippu->tileData[j*PPU::ScreenWidth+i];
-      auto tileKey = pd.key;
-      int xsc = pd.XScroll;
-      int ysc = pd.YScroll;
-      uint32_t tidx = tileKey.TileIndex;
-      dump.fill(' ');
-      dump.width(3);
-      dump << std::left << tidx << " " << xsc << " " << ysc << "    ";
-    }
-    dump << "\n";
-  }
-  dump.flush();
-  
-  Console::Halt();
-  return 0;
-}
-
 enum InfoMask {
   None=0,
   FB=1<<0,
@@ -184,15 +79,27 @@ enum CtrlCommand {
   GetSpriteTilesSoFar=4
 };
 
+template<typename T> void write_seq(std::ostream &strm, const T* data, size_t count) {
+  strm.write((const char *)(data), sizeof(T)*count);
+}
+
+template<typename T> void write_obj(std::ostream &strm, T thing) {
+  strm.write((const char *)(&thing), sizeof(T));
+}
+
+//TODO: reader functions like the two above
+
 void BlastOneTile(HdTileKey t, std::ostream &strm) {
-  strm << t.GetHashCode() << t.TileIndex << t.PaletteColors;
-  strm.write((const char *)(t.ToRgb().data()), sizeof(uint32_t)*8*8);
+  write_obj(strm, t.GetHashCode());
+  write_obj(strm, t.TileIndex);
+  write_obj(strm, t.PaletteColors);
+  write_seq(strm, t.ToRgb().data(), 8*8);
 }
 
 //TODO: get some C++ mojo to combine this one with the next one
 void BlastTiles(std::unordered_set<HdTileKey> coll, std::ostream &strm) {
   size_t count = coll.size();
-  strm << count;
+  write_obj(strm, count);
   for(auto t = coll.begin(); t != coll.end(); t++) {
     //each one is 4+4+4+(8*8*4) = 268 bytes
     BlastOneTile(*t, strm);
@@ -201,7 +108,7 @@ void BlastTiles(std::unordered_set<HdTileKey> coll, std::ostream &strm) {
 
 void BlastTiles(std::vector<HdTileKey> coll, std::ostream &strm) {
   size_t count = coll.size();
-  strm << count;
+  write_obj(strm, count);
   for(auto t = coll.begin(); t != coll.end(); t++) {
     //each one is 4+4+4+(8*8*4) = 268 bytes
     BlastOneTile(*t, strm);
@@ -219,7 +126,7 @@ void SendFramebuffer(std::shared_ptr<InstrumentingPpu> ippu, DefaultVideoFilter 
 }
 
 void SendReady(std::ostream &str) {
-  str << (uint8_t)0;
+  write_obj(str, (uint8_t)0);
   str.flush();
 }
 
@@ -248,6 +155,7 @@ int main(int argc, char**argv) {
   
   uint8_t cmd_buf[1024*1024];
   while(1) {
+    std::cerr << "Send ready\n";
     SendReady(std::cout);
     size_t read = std::fread(cmd_buf, sizeof(uint8_t), 1, stdin);
     if(read == 0) { break; }
@@ -258,6 +166,7 @@ int main(int argc, char**argv) {
     CtrlCommand cmd = (CtrlCommand)cmd_buf[0];
     switch(cmd) {
     case Step:
+      std::cerr << "start send\n";
       //get the next parts of the command: 
       read = std::fread(cmd_buf, sizeof(uint8_t), 5, stdin);
       if(read != 5) {
@@ -275,8 +184,8 @@ int main(int argc, char**argv) {
         std::cerr << "NES is only one byte per player!\n";
         abort();
       }
-      numMovesMSB = cmd_buf[3];
-      numMovesLSB = cmd_buf[4];
+      numMovesLSB = cmd_buf[3];
+      numMovesMSB = cmd_buf[4];
       numMoves = ((uint16_t)numMovesMSB << 8) | (uint16_t)numMovesLSB;
       if(numMoves == 0) {
         std::cerr << "Got to give at least one move!\n";
@@ -305,8 +214,9 @@ int main(int argc, char**argv) {
           //write tiles-by-pixel thing, int32 hashkey + int8 + int8 = 6 bytes
           for(int i = 0; i < PPU::PixelCount; i++) {
             InstPixelData pd = ippu->tileData[i];
-            std::cout << (int32_t)pd.key.GetHashCode();
-            std::cout << (uint8_t)pd.XScroll << (uint8_t)pd.YScroll;
+            write_obj(std::cout, pd.key.GetHashCode());
+            write_obj(std::cout, pd.XScroll);
+            write_obj(std::cout, pd.YScroll);
           }
         }
         if(infos & LiveSprites) {
@@ -314,23 +224,22 @@ int main(int argc, char**argv) {
           //write sprite data, int32 hashkey + int8 + int8
           uint32_t scount = ippu->GetSpriteCount();
           std::cerr << "Get sprite count " << scount << "\n";
-          scount = htonl(scount);
-          std::cout.write((const char *)&scount, 4);
+          write_obj(std::cout, scount);
           for(int i = 0; i < ippu->spritesThisFrame; i++) {
             //each one is 4+1+1 = 6 bytes
             InstSpriteData pd = ippu->spriteData[i];
             if(pd.key.TileIndex == HdTileKey::NoTile) {
               continue;
             }
-            int32_t hc = htonl(pd.key.GetHashCode());
-            std::cout.write((const char *)&hc, sizeof(int32_t));
-            std::cout.put((uint8_t)pd.X);
-            std::cout.put((uint8_t)pd.Y);
+            write_obj(std::cout, pd.key.GetHashCode());
+            write_obj(std::cout, pd.X);
+            write_obj(std::cout, pd.Y);
           }
-          std::cerr << "Done";
+          std::cerr << "sprites done\n";
         }
         //Flush after each step so the other side can read read read
         std::cout.flush();
+        std::cerr.flush();
       }
       //once per Step call
       if(infos & NewTiles) {
@@ -348,9 +257,10 @@ int main(int argc, char**argv) {
       //get file stream position
       stateLen = saveState.tellp();
       //write that to stdout
-      std::cout << (uint32_t)stateLen;
+      write_obj(std::cout, (uint32_t) stateLen);
       //then write save state bytes
       saveState.seekg(0, ios::beg);
+      // The one legit use we have for <<
       std::cout << saveState.rdbuf();
       //then reposition file stream to 0 again
       saveState.seekg(0, ios::beg);

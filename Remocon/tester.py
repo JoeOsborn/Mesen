@@ -22,14 +22,19 @@ def dump_ppm(buf, fl):
 
 
 remo = Mesen("Remocon/obj.x64/remocon", "mario.nes")
-results = remo.step([[0] * 60], Infos(framebuffer=False))
-results = remo.step([[0] * 4], Infos(framebuffer=True, live_sprites=True))
+results = remo.step([[0] * 600], Infos(framebuffer=False))
+results = remo.step([[0] * 1], Infos(framebuffer=True, live_sprites=True, tiles_by_pixel=True))
 i = 0
 for pf in results[0]:
     i += 1
     fb = pf.framebuffer
     if fb is not None:
         dump_ppm(fb, "testout/f" + str(i) + ".ppm")
+    if pf.tiles_by_pixel is not None:
+        for row in range(len(pf.tiles_by_pixel)):
+            for col in range(len(pf.tiles_by_pixel[0])):
+                tile_here = pf.tiles_by_pixel[row][col]
+                print(tile_here.x_scroll)
     if pf.live_sprites is not None:
         print ("frame")
         for sprite in pf.live_sprites:

@@ -39,15 +39,15 @@ InfoReservedC = 1 << 7
 
 
 def from_uint32(byte_slice):
-    return struct.unpack("!I", byte_slice)[0]
+    return struct.unpack("@I", byte_slice)[0]
 
 
 def to_uint8(num):
-    return struct.pack("B", num)
+    return struct.pack("@B", num)
 
 
 def to_uint16(num):
-    return struct.pack("!H", num)
+    return struct.pack("@H", num)
 
 
 Tile = namedtuple("Tile", ["hash", "index", "palette", "pixels"])
@@ -161,7 +161,6 @@ class Mesen(object):
         per_frames = []
         read_idx = 0
         for m in range(move_count):
-            print ("hello")
             framebuffer = None  # type: Optional[np.ndarray[int]]
             tiles_by_pixel = None  # type: Optional[List[List[PixelTileData]]]
             live_sprites = None  # type: Optional[List[Sprite]]
@@ -173,9 +172,9 @@ class Mesen(object):
                 read_idx = 0
                 assert self.outp.readinto(cast(bytearray, self.readbuf[:(self.framebuffer_height * self.framebuffer_width * 6)])) == (self.framebuffer_height * self.framebuffer_width * 6)
                 tiles_by_pixel = []
-                for y in range(self.framebuffer_height):
+                for x in range(self.framebuffer_width):
                     tiles_by_pixel.append([])
-                    for x in range(self.framebuffer_width):
+                    for y in range(self.framebuffer_height):
                         hash = from_uint32(self.readbuf[read_idx:read_idx + 4])
                         xscroll = ord(self.readbuf[read_idx + 4])
                         yscroll = ord(self.readbuf[read_idx + 5])
@@ -198,12 +197,15 @@ class Mesen(object):
                         live_sprites.append(Sprite(sprite_hash, sprite_x, sprite_y))
             per_frames.append(PerFrame(framebuffer, tiles_by_pixel, live_sprites))
         # read summary statistics if infos have them
+        print("done")
         new_tiles = None  # type: Optional[List[Tile]]
         new_sprite_tiles = None  # type: Optional[List[Tile]]
         if infos.new_tiles:
             new_tiles = self.read_tile_sequence()
         if infos.new_sprite_tiles:
             new_sprite_tiles = self.read_tile_sequence()
+        print("wait")
         self.wait_ready()
+        print("ready")
         summary = Summary(new_tiles, new_sprite_tiles)
         return (per_frames, summary)
