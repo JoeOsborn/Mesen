@@ -11,9 +11,10 @@ from mesen import Mesen, Infos
 
 
 def dump_ppm(buf, fl):
-    header = bytearray(b"P6\n 256 240\n 255\n")
+    header = bytearray(b"P6\n {} {}\n 255\n".format(buf.shape[0],buf.shape[1]))
     ppmfile = open(fl, 'wb')
     ppmfile.write(header)
+    
     for y in range(len(buf)):
         for x in range(len(buf[y])):
             ppmfile.write(bytearray([buf[y, x, 2], buf[y, x, 1], buf[y, x, 0]]))
@@ -48,7 +49,7 @@ for pf in results[0]:
         for row in range(len(pf.tiles_by_pixel)):
             for col in range(len(pf.tiles_by_pixel[0])):
                 tile_here = pf.tiles_by_pixel[row][col]
-                print(tile_here.x_scroll)
+                #print(tile_here.x_scroll)
     if pf.live_sprites is not None:
         print ("frame")
         for sprite in pf.live_sprites:

@@ -98,9 +98,7 @@ void BlastOneTile(HdTileKey t, std::ostream &strm) {
 
 //TODO: get some C++ mojo to combine this one with the next one
 void BlastTiles(std::unordered_set<HdTileKey> coll, std::ostream &strm) {
-  size_t count = coll.size();
-  std::cerr << "size1:"<<count<<"\n";
-  std::cerr.flush();
+  uint32_t count = coll.size();
   write_obj(strm, count);
   for(auto t = coll.begin(); t != coll.end(); t++) {
     //each one is 4+4+4+(8*8*4) = 268 bytes
@@ -109,9 +107,7 @@ void BlastTiles(std::unordered_set<HdTileKey> coll, std::ostream &strm) {
 }
 
 void BlastTiles(std::vector<HdTileKey> coll, std::ostream &strm) {
-  size_t count = coll.size();
-  std::cerr << "size2:"<<count<<"\n";
-  std::cerr.flush();
+  uint32_t count = coll.size();
   write_obj(strm, count);
   for(auto t = coll.begin(); t != coll.end(); t++) {
     //each one is 4+4+4+(8*8*4) = 268 bytes

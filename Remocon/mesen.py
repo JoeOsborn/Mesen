@@ -124,14 +124,24 @@ class Mesen(object):
         print("hm", how_many)
         assert self.outp.readinto(cast(bytearray, self.readbuf[:(how_many * (4 + 4 + 4 + 8 * 8 * 4))])) == (how_many * (4 + 4 + 4 + 8 * 8 * 4))
         read_idx = 0
-        for tile_idx in range(how_many):
+        for tile_idx_ in range(how_many):
             tile_hash = from_uint32(self.readbuf[read_idx:read_idx + 4])
             read_idx += 4
             tile_idx = from_uint32(self.readbuf[read_idx:read_idx + 4])
             read_idx += 4
             tile_pal = from_uint32(self.readbuf[read_idx:read_idx + 4])
             read_idx += 4
+            
+            other = self.readbuf[read_idx:read_idx + 8 * 8 * 4]
+            tile_pixels = np.zeros((8,8,4))
+            ind = 0
+            
             tile_pixels = np.array(self.readbuf[read_idx:read_idx + 8 * 8 * 4], copy=True, dtype=np.uint8).reshape((8, 8, 4))
+
+            #import matplotlib.pyplot as plt
+            #plt.imshow(tile_pixels[:,:,[2,1,0]],interpolation='none')
+            #plt.show()
+            
             read_idx += 8 * 8 * 4
             new_tiles.append(Tile(tile_hash, tile_idx, tile_pal, tile_pixels))
         return new_tiles
@@ -204,6 +214,7 @@ class Mesen(object):
         if infos.new_tiles:
             new_tiles = self.read_tile_sequence()
         if infos.new_sprite_tiles:
+            print('sprite tiles')
             new_sprite_tiles = self.read_tile_sequence()
         print("wait")
         self.wait_ready()
