@@ -87,7 +87,7 @@ template<typename T> void write_obj(std::ostream &strm, T thing) {
   strm.write((const char *)(&thing), sizeof(T));
 }
 
-//TODO: reader functions like the two above
+//TODO: reader functions like the two above?
 
 void BlastOneTile(HdTileKey t, std::ostream &strm) {
   write_obj(strm, t.GetHashCode());
@@ -271,19 +271,18 @@ int main(int argc, char**argv) {
       break;
     case LoadState:
       //LoadState, infos, statelen, statebuf
-      //TODO: load up and return framebuffer if infos & framebuffer
       read = std::fread(cmd_buf, sizeof(uint8_t), 1, stdin);
       if(read != 1) {
         std::cerr << "Couldn't read enough bytes in loadstate metadata A\n";
         abort();
       }
       infos = (InfoMask)cmd_buf[0];
-      read = std::fread(cmd_buf, sizeof(size_t), 1, stdin);
-      if(read != 1) {
+      read = std::fread(cmd_buf, sizeof(uint32_t), 1, stdin);
+      if(read != sizeof(uint32_t)) {
         std::cerr << "Couldn't read enough bytes in loadstate metadata B\n";
         abort();
       }
-      stateLen = cmd_buf[0];
+      stateLen = *((uint32_t*)(cmd_buf));
       read = std::fread(cmd_buf, sizeof(uint8_t), stateLen, stdin);
       if(read != stateLen) {
         std::cerr << "Couldn't read enough bytes in loadstate payload\n";
