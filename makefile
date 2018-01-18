@@ -7,10 +7,10 @@
 #Default is x64
 
 CPPC=clang++
-GCCOPTIONS=-fPIC -Wall --std=c++1z -g
+GCCOPTIONS=-fPIC -Wall --std=c++1z -g -O2
 
 CC=clang
-CCOPTIONS=-fPIC -Wall -g
+CCOPTIONS=-fPIC -Wall -g -O2
 
 ifeq ($(MESENPLATFORM),x86)
 	MESENPLATFORM=x86
