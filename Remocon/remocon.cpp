@@ -221,17 +221,21 @@ int main(int argc, char**argv) {
         }
         if(infos & LiveSprites) {
           //TODO: update all cout << junk to use write or put as needed
-          //write sprite data, int32 hashkey + int8 + int8
+          //write sprite data, int32 hashkey + int8 + int8 + int8
           uint32_t scount = ippu->GetSpriteCount();
           std::cerr << "Get sprite count " << scount << "\n";
           write_obj(std::cout, scount);
           for(int i = 0; i < ippu->spritesThisFrame; i++) {
-            //each one is 4+1+1 = 6 bytes
+            //each one is 4+1+1+1 = 7 bytes
             InstSpriteData pd = ippu->spriteData[i];
             if(pd.key.TileIndex == HdTileKey::NoTile) {
               continue;
             }
             write_obj(std::cout, pd.key.GetHashCode());
+            write_obj<uint8_t>(std::cout,
+                               (pd.key.HorizontalMirroring << 2) |
+                               (pd.key.VerticalMirroring << 1) |
+                               (pd.key.BackgroundPriority << 0));
             write_obj(std::cout, pd.X);
             write_obj(std::cout, pd.Y);
           }

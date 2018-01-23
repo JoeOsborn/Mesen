@@ -53,7 +53,7 @@ def to_uint16(num):
 Tile = namedtuple("Tile", ["hash", "index", "palette", "pixels"])
 Summary = namedtuple("Summary", ["new_tiles", "new_sprite_tiles"])
 PixelTileData = namedtuple("PixelTileData", ["hash", "x_scroll", "y_scroll"])
-Sprite = namedtuple("Sprite", ["hash", "x", "y"])
+Sprite = namedtuple("Sprite", ["hash", "horizontal_mirroring", "vertical_mirroring", "background_priority", "x", "y"])
 PerFrame = namedtuple("PerFrame", ["framebuffer", "tiles_by_pixel", "live_sprites"])
 Infos = namedtuple("Infos", ["framebuffer", "new_tiles", "new_sprite_tiles", "tiles_by_pixel", "live_sprites"])
 Infos.__new__.__defaults__ = (None,) * len(Infos._fields)
@@ -131,17 +131,17 @@ class Mesen(object):
             read_idx += 4
             tile_pal = from_uint32(self.readbuf[read_idx:read_idx + 4])
             read_idx += 4
-            
+
             other = self.readbuf[read_idx:read_idx + 8 * 8 * 4]
-            tile_pixels = np.zeros((8,8,4))
+            tile_pixels = np.zeros((8, 8, 4))
             ind = 0
-            
+
             tile_pixels = np.array(self.readbuf[read_idx:read_idx + 8 * 8 * 4], copy=True, dtype=np.uint8).reshape((8, 8, 4))
 
             #import matplotlib.pyplot as plt
-            #plt.imshow(tile_pixels[:,:,[2,1,0]],interpolation='none')
-            #plt.show()
-            
+            # plt.imshow(tile_pixels[:,:,[2,1,0]],interpolation='none')
+            # plt.show()
+
             read_idx += 8 * 8 * 4
             new_tiles.append(Tile(tile_hash, tile_idx, tile_pal, tile_pixels))
         return new_tiles
@@ -197,15 +197,19 @@ class Mesen(object):
                 how_many = from_uint32(self.readbuf[0:4])
                 print("SPR", how_many, list(self.readbuf[0:4]))
                 if how_many != 0:
-                    assert self.outp.readinto(cast(bytearray, self.readbuf[:how_many * 6])) == how_many * 6
+                    assert self.outp.readinto(cast(bytearray, self.readbuf[:how_many * 7])) == how_many * 7
                     read_idx = 0
                     print("A")
                     for sprite_idx in range(how_many):
                         sprite_hash = from_uint32(self.readbuf[read_idx:read_idx + 4])
-                        sprite_x = ord(self.readbuf[read_idx + 4])
-                        sprite_y = ord(self.readbuf[read_idx + 5])
-                        read_idx += 4 + 1 + 1
-                        live_sprites.append(Sprite(sprite_hash, sprite_x, sprite_y))
+                        sprite_flags = ord(self.readbuf[read_idx + 4])
+                        hori = sprite_flags & (1 << 2)
+                        vert = sprite_flags & (1 << 1)
+                        background = sprite_flags & (1 << 0)
+                        sprite_x = ord(self.readbuf[read_idx + 5])
+                        sprite_y = ord(self.readbuf[read_idx + 6])
+                        read_idx += 4 + 1 + 1 + 1
+                        live_sprites.append(Sprite(sprite_hash, hori, vert, background, sprite_x, sprite_y))
             per_frames.append(PerFrame(framebuffer, tiles_by_pixel, live_sprites))
         # read summary statistics if infos have them
         print("done")

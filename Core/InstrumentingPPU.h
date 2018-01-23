@@ -7,7 +7,8 @@
 
 struct InstSpriteData
 {
-  HdTileKey key;
+  // Intentionally slicing off offsetx, offsety, etc.
+  HdPpuTileInfo key;
   uint8_t X;
   uint8_t Y;
 
@@ -18,7 +19,7 @@ struct InstSpriteData
 
 	bool operator==(const InstSpriteData &other) const
 	{
-		return key == other.key && X == other.X && Y == other.Y;
+		return key == other.key && X == other.X && Y == other.Y && key.HorizontalMirroring == other.key.HorizontalMirroring && key.VerticalMirroring == other.key.VerticalMirroring && key.BackgroundPriority == other.key.BackgroundPriority;
 	}
 };
 
