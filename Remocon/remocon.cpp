@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <iostream>
+#include <tuple>
 
 #ifdef _WIN32
 # include <io.h>
@@ -131,6 +132,8 @@ void SendReady(std::ostream &str) {
 }
 
 int main(int argc, char**argv) {
+
+  //std::setvbuf(stdout,NULL,_IONBF,1024*1024*8);
   SET_BINARY_MODE(stdin);
   SET_BINARY_MODE(stdout);
   FolderUtilities::SetHomeFolder("./");
@@ -212,18 +215,63 @@ int main(int argc, char**argv) {
         }
         if(infos & TilesByPixel) {
           //write tiles-by-pixel thing, int32 hashkey + int8 + int8 = 6 bytes
-          for(int i = 0; i < PPU::PixelCount; i++) {
+
+	  InstPixelData prev_pd = ippu->tileData[0];
+	  uint32_t count = 1;
+
+	  int datapoints = 0;
+	  std::vector<std::tuple<uint32_t,InstPixelData> > pixels_data;
+          for(int i = 1; i < PPU::PixelCount; i++) {
+	    InstPixelData pd = ippu->tileData[i];
+	    if (pd.key.GetHashCode() == prev_pd.key.GetHashCode() &&
+		pd.XScroll == prev_pd.XScroll &&
+		pd.YScroll == prev_pd.YScroll){
+	      count += 1;
+	    }
+	    else {
+
+	      datapoints += 1;
+
+	      pixels_data.push_back(std::tuple<uint32_t, InstPixelData>(count,prev_pd));
+	      
+	      //std::cerr <<  "{" << prev_pd.key.GetHashCode() << "," <<  prev_pd.XScroll << "," << prev_pd.YScroll << "} = " << (uint32_t) count  <<"\n";
+	      prev_pd = pd;
+	      count = 1;
+	    }
+	    
+	  }
+      
+	datapoints += 1;
+
+	//std::cerr <<  "{" << prev_pd.key.GetHashCode() << "," <<  prev_pd.XScroll << "," << prev_pd.YScroll << "} = " << (uint32_t) count  <<"\n";
+	      
+	pixels_data.push_back(std::tuple<uint32_t, InstPixelData>(count,prev_pd));
+	
+	write_obj(std::cout, (uint32_t) pixels_data.size());
+	for (int i = 0; i < pixels_data.size(); ++i){
+	  write_obj(std::cout, std::get<0>(pixels_data[i]));
+	  write_obj(std::cout,  std::get<1>(pixels_data[i]).key.GetHashCode());
+	  write_obj(std::cout, std::get<1>(pixels_data[i]).XScroll);
+	  write_obj(std::cout, std::get<1>(pixels_data[i]).YScroll);
+
+	}
+	
+	//std::cerr << datapoints << " vs " <<PPU::PixelCount << " " <<PPU::PixelCount/datapoints  << " ENDTBP\n";
+	/*
+	for(int i = 0; i < PPU::PixelCount; i++) {
             InstPixelData pd = ippu->tileData[i];
             write_obj(std::cout, pd.key.GetHashCode());
             write_obj(std::cout, pd.XScroll);
             write_obj(std::cout, pd.YScroll);
           }
+	*/
         }
+	
         if(infos & LiveSprites) {
           //TODO: update all cout << junk to use write or put as needed
           //write sprite data, int32 hashkey + int8 + int8 + int8
           uint32_t scount = ippu->GetSpriteCount();
-          std::cerr << "Get sprite count " << scount << "\n";
+          //std::cerr << "Get sprite count " << scount << "\n";
           write_obj(std::cout, scount);
           for(int i = 0; i < ippu->spritesThisFrame; i++) {
             //each one is 4+1+1+1 = 7 bytes
