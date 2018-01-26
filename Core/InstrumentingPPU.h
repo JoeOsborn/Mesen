@@ -86,7 +86,8 @@ public:
   // Per-frame info
   HdPpuTileInfo tile, sprite;
   InstPixelData tileData[PPU::PixelCount];
-  InstSpriteData spriteData[64];
+  static const size_t MaxSpritesPerFrame = 1024;
+  InstSpriteData spriteData[MaxSpritesPerFrame];
   int spritesThisFrame;
 
   size_t GetSpriteCount() {

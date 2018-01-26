@@ -37,7 +37,6 @@ InfoReservedB = 1 << 6
 InfoReservedC = 1 << 7
 
 
-
 MoveA = 1 << 0
 MoveB = 1 << 1
 MoveSelect = 1 << 2
@@ -63,7 +62,7 @@ def to_uint16(num):
 
 
 Tile = namedtuple("Tile", ["hash", "index", "palette", "pixels"])
-Move = namedtuple("Move", ["A", "B","Start","Select","Up","Down","Left","Right"])
+Move = namedtuple("Move", ["A", "B", "Start", "Select", "Up", "Down", "Left", "Right"])
 Summary = namedtuple("Summary", ["new_tiles", "new_sprite_tiles"])
 PixelTileData = namedtuple("PixelTileData", ["hash", "x_scroll", "y_scroll"])
 Sprite = namedtuple("Sprite", ["hash", "horizontal_mirroring", "vertical_mirroring", "background_priority", "x", "y"])
@@ -87,6 +86,7 @@ def infos_to_byte(infos):
         mask |= InfoLiveSprites
     return mask
 
+
 def move_to_byte(move):
     control = 0
     if move.A:
@@ -107,6 +107,7 @@ def move_to_byte(move):
         control |= MoveRight
     return control
 
+
 def fm2_input_to_move(fm2_data):
     return Move(A='A' in fm2_data,
                 B='B' in fm2_data,
@@ -116,25 +117,27 @@ def fm2_input_to_move(fm2_data):
                 Down='D' in fm2_data,
                 Left='L' in fm2_data,
                 Right='R' in fm2_data)
-    
-                
+
+
 def read_fm2(fm2_file):
 
     player_controls = {}
-    with open(fm2_file,'rb') as fm2_file:
+    with open(fm2_file, 'rb') as fm2_file:
         for line in fm2_file:
             line.rstrip()
             if line[0] == '|':
                 controls = line.split('|')[2:-2]
                 controls = [x for x in controls if x]
-                for player,control in enumerate(controls):
+                for player, control in enumerate(controls):
                     if player not in player_controls:
                         player_controls[player] = []
                     player_controls[player].append(fm2_input_to_move(control))
     return [player_controls[player] for player in sorted(player_controls)]
-                
+
+
 def moves_to_bytes(move_list):
-    return list(map( move_to_byte,move_list))
+    return list(map(move_to_byte, move_list))
+
 
 class Mesen(object):
     __slots__ = ("mesen", "rom", "process", "inp", "outp", "readbuf", "writebuf",
@@ -142,7 +145,7 @@ class Mesen(object):
                  "framebuffer_height", "framebuffer_width", "framebuffer_depth")
     # TODO: type the above
 
-    def __init__(self, mesen, romfile, num_players=1, bytes_per_player=1, framebuffer_height=256, framebuffer_width=240, framebuffer_depth=4):
+    def __init__(self, mesen, romfile, num_players=1, bytes_per_player=1, framebuffer_height=240, framebuffer_width=256, framebuffer_depth=4):
         # type: (str, str, int, int, int, int, int) -> None
         self.mesen = mesen
         self.rom = romfile
@@ -154,8 +157,8 @@ class Mesen(object):
         self.framebuffer_width = framebuffer_width
         self.framebuffer_depth = framebuffer_depth
         self.framebuffer_length = self.framebuffer_height * self.framebuffer_width * self.framebuffer_depth
-        assert self.framebuffer_height == 256
-        assert self.framebuffer_width == 240
+        assert self.framebuffer_height == 240
+        assert self.framebuffer_width == 256
         assert self.framebuffer_depth == 4
         self.process = subprocess.Popen([self.mesen, self.rom],
                                         stdin=subprocess.PIPE,
@@ -164,7 +167,7 @@ class Mesen(object):
                                         bufsize=0)
         self.inp = cast(io.BufferedWriter, io.open(self.process.stdin.fileno(), 'wb', closefd=False))
         self.outp = cast(io.BufferedReader, io.open(self.process.stdout.fileno(), 'rb', closefd=False))
-        self.readbuf = memoryview(bytearray([0] * 1024 * 1024*32))
+        self.readbuf = memoryview(bytearray([0] * 1024 * 1024 * 32))
         self.writebuf = memoryview(bytearray([0] * 1024 * 1024))
         self.wait_ready()
 
@@ -184,7 +187,7 @@ class Mesen(object):
         assert self.outp.readinto(cast(bytearray, self.readbuf[:4])) == 4
         how_many = from_uint32(self.readbuf[0:4])
         print("hm", how_many)
-        
+
         assert self.outp.readinto(cast(bytearray, self.readbuf[:(how_many * (4 + 4 + 4 + 8 * 8 * 4))])) == (how_many * (4 + 4 + 4 + 8 * 8 * 4))
         read_idx = 0
         for tile_idx_ in range(how_many):
@@ -241,7 +244,7 @@ class Mesen(object):
             if infos.framebuffer:
                 assert self.outp.readinto(cast(bytearray, self.readbuf[:self.framebuffer_length])) == self.framebuffer_length
                 read_idx = 0
-                framebuffer = cast(np.ndarray, np.array(self.readbuf[:self.framebuffer_length], copy=True, dtype=np.uint8).reshape((self.framebuffer_width, self.framebuffer_height, self.framebuffer_depth)))
+                framebuffer = cast(np.ndarray, np.array(self.readbuf[:self.framebuffer_length], copy=True, dtype=np.uint8).reshape((self.framebuffer_height, self.framebuffer_width, self.framebuffer_depth)))
             if infos.tiles_by_pixel:
                 read_idx = 0
                 assert self.outp.readinto(cast(bytearray, self.readbuf[:4])) == 4
@@ -254,12 +257,11 @@ class Mesen(object):
                     hash = from_uint32(self.readbuf[4:8])
                     xscroll = ord(self.readbuf[read_idx + 8])
                     yscroll = ord(self.readbuf[read_idx + 9])
-                    rle_pixels.append((number_of_pixels,PixelTileData(hash,xscroll,yscroll)))
-
+                    rle_pixels.append((number_of_pixels, PixelTileData(hash, xscroll, yscroll)))
 
                 expanded = []
                 for rle in rle_pixels:
-                    expanded += [rle[1]]*rle[0]
+                    expanded += [rle[1]] * rle[0]
                 ind = 0
                 tiles_by_pixel = []
                 for x in range(self.framebuffer_width):
@@ -267,9 +269,9 @@ class Mesen(object):
                     for y in range(self.framebuffer_height):
                         tiles_by_pixel[-1].append(expanded[ind])
                         ind += 1
-                
-                    #rle_pixels
-                
+
+                    # rle_pixels
+
                 '''
                 assert self.outp.readinto(cast(bytearray, self.readbuf[:(self.framebuffer_height * self.framebuffer_width * 6)])) == (self.framebuffer_height * self.framebuffer_width * 6)
                 tiles_by_pixel = []

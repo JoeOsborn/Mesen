@@ -1,5 +1,6 @@
 #include "InstrumentingPPU.h"
- 
+#include <assert.h>
+
 void InstrumentingPpu::DrawPixel()
 {
   if(_scanline <= 0 && _cycle <= 1) {
@@ -45,6 +46,7 @@ void InstrumentingPpu::DrawPixel()
           if(!found) {
             spriteData[spritesThisFrame] = thisSprite;
             spritesThisFrame++;
+            assert(spritesThisFrame < InstrumentingPpu::MaxSpritesPerFrame);
           }
 					ProcessTile(_cycle - 1, _scanline, _lastSprite->AbsoluteTileAddr, sprite, _mapper, true, true);
 				}

@@ -8,9 +8,11 @@
 
 CPPC=clang++
 GCCOPTIONS=-fPIC -Wall --std=c++1z -g -O2
+# GCCOPTIONS=-fPIC -Wall --std=c++1z -g -fsanitize=address -fsanitize=undefined
 
 CC=clang
 CCOPTIONS=-fPIC -Wall -g -O2
+# CCOPTIONS=-fPIC -Wall -g -fsanitize=address -fsanitize=undefined
 
 ifeq ($(MESENPLATFORM),x86)
 	MESENPLATFORM=x86
