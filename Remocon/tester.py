@@ -1,6 +1,6 @@
 # type check: MYPYPATH=../../mypy-data/numpy-mypy mypy --py2 tester.py
 # run: python tester.py
-from __future__ import print_function
+import matplotlib.pyplot as plt
 import subprocess
 import atexit
 import struct
@@ -24,45 +24,53 @@ def dump_ppm(buf, fl):
 
 
 mario_controls = mesen.read_fm2('Illustrative.fm2')
-
-mario_controls = map(mesen.moves_to_bytes, mario_controls)
+mario_controls = list(map(mesen.moves_to_bytes, mario_controls))
 #mario_controls = [[0, mesen.MoveStart, 0, 0, mesen.MoveA] * 300]
 print(len(mario_controls[0]))
 
 remo = Mesen("Remocon/obj.x64/remocon", "mario.nes")
 #remo = Mesen("Remocon/obj.x64/remocon", "mario3.nes")
 
-startup = 500
+startup = 650
 results = remo.step([mario_controls[0][:startup]], Infos(framebuffer=False, live_sprites=False, tiles_by_pixel=False, new_tiles=False, new_sprite_tiles=False))
-results = remo.step([mario_controls[0][startup:startup + 1]], Infos(framebuffer=True, live_sprites=True, tiles_by_pixel=True, new_tiles=False, new_sprite_tiles=False))
+results = remo.step([mario_controls[0][startup:startup + 1]], Infos(framebuffer=True, live_sprites=True, tiles_by_pixel=True, new_tiles=True, new_sprite_tiles=True))
 
 #remo.step(mario_controls, Infos(framebuffer=False, live_sprites=True, tiles_by_pixel=True, new_tiles=True, new_sprite_tiles=True))
 print("Steps done")
 if results[1].new_tiles is not None:
+    print("Dump tiles:", len(results[1].new_tiles))
     for t in results[1].new_tiles:
         dump_ppm(t.pixels, "testout/tt" + str(t.hash) + ".ppm")
+    print("Done")
 if results[1].new_sprite_tiles is not None:
+    print("Dump sprite tiles:", len(results[1].new_sprite_tiles))
     for t in results[1].new_sprite_tiles:
         dump_ppm(t.pixels, "testout/st" + str(t.hash) + ".ppm")
+    print("Done")
 
 
-import matplotlib.pyplot as plt
 for pf in results[0]:
     if pf.framebuffer is not None:
+        print("FB")
         plt.imshow(pf.framebuffer[:, :, [2, 1, 0]], interpolation='none')
         plt.show()
     if pf.tiles_by_pixel is not None:
-        tiles = np.zeros((len(pf.tiles_by_pixel), len(pf.tiles_by_pixel[0])))
-        scrolls = np.zeros((len(pf.tiles_by_pixel), len(pf.tiles_by_pixel[0]), 3))
-        hashes = {}
-        for row in range(len(pf.tiles_by_pixel)):
-            for col in range(len(pf.tiles_by_pixel[0])):
+        w = len(pf.tiles_by_pixel[0])
+        h = len(pf.tiles_by_pixel)
+        print("tiles by pixel and scroll:", w, h)
+        tiles = np.zeros((h, w))
+        scrolls = np.zeros((h, w, 3))
+        hashes: Dict[int, int] = {}
+        for row in range(h):
+            for col in range(w):
                 if pf.tiles_by_pixel[row][col].hash not in hashes:
                     hashes[pf.tiles_by_pixel[row][col].hash] = len(hashes)
                 tiles[row, col] = hashes[pf.tiles_by_pixel[row][col].hash]
                 scrolls[row, col, 0] = pf.tiles_by_pixel[row][col].x_scroll / 8.0
                 scrolls[row, col, 1] = pf.tiles_by_pixel[row][col].y_scroll / 8.0
+        print("BG tiles")
         plt.imshow(tiles, interpolation='none', cmap='viridis')
         plt.show()
+        print("Scroll info")
         plt.imshow(scrolls, interpolation='none', cmap='viridis')
         plt.show()

@@ -1,4 +1,3 @@
-from __future__ import print_function
 import sys
 import subprocess
 import atexit
@@ -119,10 +118,10 @@ def fm2_input_to_move(fm2_data):
                 Right='R' in fm2_data)
 
 
-def read_fm2(fm2_file):
-
+def read_fm2(fm2_path):
     player_controls = {}
-    with open(fm2_file, 'rb') as fm2_file:
+    with open(fm2_path, 'r') as fm2_file:
+        assert fm2_file
         for line in fm2_file:
             line.rstrip()
             if line[0] == '|':
@@ -178,7 +177,7 @@ class Mesen(object):
     def wait_ready(self):
         # type: () -> None
         assert self.outp.readinto(cast(bytearray, self.readbuf[:1])) == 1
-        assert ord(self.readbuf[0]) == 0
+        assert self.readbuf[0] == 0
 
     def read_tile_sequence(self):
         # type: () -> List[Tile]
@@ -204,7 +203,7 @@ class Mesen(object):
 
             tile_pixels = np.array(self.readbuf[read_idx:read_idx + 8 * 8 * 4], copy=True, dtype=np.uint8).reshape((8, 8, 4))
 
-            #import matplotlib.pyplot as plt
+            # import matplotlib.pyplot as plt
             # plt.imshow(tile_pixels[:,:,[2,1,0]],interpolation='none')
             # plt.show()
 
@@ -216,22 +215,22 @@ class Mesen(object):
         # type: (Iterable[Iterable[int]], Infos) -> Tuple[Iterable[PerFrame], Summary]
         move_gens = list(move_gen)
         assert len(move_gens) == self.num_players
-        moves = map(lambda m: list(m), move_gens)  # type: List[List[int]]
+        moves = list(map(lambda m: list(m), move_gens))  # type: List[List[int]]
         move_count = len(moves[0])
         move_bytes = move_count * self.num_players * self.bytes_per_player
         assert move_bytes < (len(self.writebuf) - 6)
         assert move_count < 2**16
         for move_list in moves:
             assert len(move_list) == move_count
-        self.writebuf[0] = chr(CmdStep)
-        self.writebuf[1] = chr(infos_to_byte(infos))
-        self.writebuf[2] = chr(self.num_players)
-        self.writebuf[3] = chr(self.bytes_per_player)
+        self.writebuf[0] = (CmdStep)
+        self.writebuf[1] = (infos_to_byte(infos))
+        self.writebuf[2] = (self.num_players)
+        self.writebuf[3] = (self.bytes_per_player)
         self.writebuf[4:6] = to_uint16(move_count)
         for i in range(move_count):
             for p in range(self.num_players):
                 # TODO: for each byte of the move
-                self.writebuf[6 + i * self.num_players * self.bytes_per_player + p * self.bytes_per_player] = chr(moves[p][i])
+                self.writebuf[6 + i * self.num_players * self.bytes_per_player + p * self.bytes_per_player] = (moves[p][i])
         self.inp.write(cast(bytearray, self.writebuf[:6 + move_bytes]))
         self.inp.flush()
         # read outputs from self.outp
@@ -255,18 +254,18 @@ class Mesen(object):
                     assert self.outp.readinto(cast(bytearray, self.readbuf[:10])) == 10
                     number_of_pixels = from_uint32(self.readbuf[:4])
                     hash = from_uint32(self.readbuf[4:8])
-                    xscroll = ord(self.readbuf[read_idx + 8])
-                    yscroll = ord(self.readbuf[read_idx + 9])
+                    xscroll = (self.readbuf[read_idx + 8])
+                    yscroll = (self.readbuf[read_idx + 9])
                     rle_pixels.append((number_of_pixels, PixelTileData(hash, xscroll, yscroll)))
 
-                expanded = []
+                expanded: List[PixelTileData] = []
                 for rle in rle_pixels:
                     expanded += [rle[1]] * rle[0]
                 ind = 0
                 tiles_by_pixel = []
-                for x in range(self.framebuffer_width):
+                for y in range(self.framebuffer_height):
                     tiles_by_pixel.append([])
-                    for y in range(self.framebuffer_height):
+                    for x in range(self.framebuffer_width):
                         tiles_by_pixel[-1].append(expanded[ind])
                         ind += 1
 
@@ -279,8 +278,8 @@ class Mesen(object):
                     tiles_by_pixel.append([])
                     for y in range(self.framebuffer_height):
                         hash = from_uint32(self.readbuf[read_idx:read_idx + 4])
-                        xscroll = ord(self.readbuf[read_idx + 4])
-                        yscroll = ord(self.readbuf[read_idx + 5])
+                        xscroll = (self.readbuf[read_idx + 4])
+                        yscroll = (self.readbuf[read_idx + 5])
                         read_idx += 4 + 1 + 1
                         tiles_by_pixel[-1].append(PixelTileData(hash, xscroll, yscroll))
                 '''
@@ -293,12 +292,12 @@ class Mesen(object):
                     read_idx = 0
                     for sprite_idx in range(how_many):
                         sprite_hash = from_uint32(self.readbuf[read_idx:read_idx + 4])
-                        sprite_flags = ord(self.readbuf[read_idx + 4])
+                        sprite_flags = (self.readbuf[read_idx + 4])
                         hori = sprite_flags & (1 << 2)
                         vert = sprite_flags & (1 << 1)
                         background = sprite_flags & (1 << 0)
-                        sprite_x = ord(self.readbuf[read_idx + 5])
-                        sprite_y = ord(self.readbuf[read_idx + 6])
+                        sprite_x = (self.readbuf[read_idx + 5])
+                        sprite_y = (self.readbuf[read_idx + 6])
                         read_idx += 4 + 1 + 1 + 1
                         live_sprites.append(Sprite(sprite_hash, hori, vert, background, sprite_x, sprite_y))
             per_frames.append(PerFrame(framebuffer, tiles_by_pixel, live_sprites))

@@ -98,7 +98,7 @@ InteropDLL/$(OBJFOLDER)/$(SHAREDLIB): $(SEVENZIPOBJ) $(LUAOBJ) $(UTILOBJ) $(CORE
 
 linux: InteropDLL/$(OBJFOLDER)/$(SHAREDLIB) $(LINUXOBJ) $(LIBEVDEVOBJ)
 	ar -rcs InteropDLL/$(OBJFOLDER)/libMesenLinux.a $(LINUXOBJ) $(LIBEVDEVOBJ)
-	cd InteropDLL/$(OBJFOLDER) && $(CPPC) $(GCCOPTIONS) -Wl,-z,defs -Wno-parentheses -Wno-switch -shared -o $(SHAREDLIB) ../*.cpp -L . -lMesenLinux -lCore -lUtilities -lLua -lSevenZip -pthread -lSDL2 -lstdc++fs
+	cd InteropDLL/$(OBJFOLDER) && $(CPPC) $(GCCOPTIONS) -Wl,-z,defs -Wno-parentheses -Wno-switch -shared -o $(SHAREDLIB) ../*.cpp -L . -lMesenLinux -lCore -lUtilities -lLua -lSevenZip -pthread -lboost_system -lboost_filesystem -lSDL2 -lstdc++fs
 
 Remocon/$(OBJFOLDER)/%.o: Remocon/%.cpp
 	mkdir -p Remocon/$(OBJFOLDER) && cd Remocon/$(OBJFOLDER) && $(CPPC) $(GCCOPTIONS) -I ../../ -Wno-parentheses -Wno-switch -c $(patsubst Remocon/%, ../%, $<)
