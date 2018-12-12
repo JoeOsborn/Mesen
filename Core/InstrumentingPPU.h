@@ -91,7 +91,7 @@ public:
   int spritesThisFrame;
 
   size_t GetSpriteCount() {
-    std::cerr << "SDS " << spritesThisFrame << "\n";
+    // std::cerr << "SDS " << spritesThisFrame << "\n";
     return spritesThisFrame;
   }
 };

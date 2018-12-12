@@ -287,7 +287,7 @@ int main(int argc, char**argv) {
             write_obj(std::cout, pd.X);
             write_obj(std::cout, pd.Y);
           }
-          std::cerr << "sprites done\n";
+          // std::cerr << "sprites done\n";
         }
         //Flush after each step so the other side can read read read
         std::cout.flush();

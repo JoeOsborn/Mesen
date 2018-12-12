@@ -12,7 +12,7 @@ import mesen
 
 
 def dump_ppm(buf, fl):
-    header = bytearray(b"P6\n {} {}\n 255\n".format(buf.shape[1], buf.shape[0]))
+    header = bytearray("P6\n {} {}\n 255\n".format(buf.shape[1], buf.shape[0]), "utf-8")
     ppmfile = open(fl, 'wb')
     ppmfile.write(header)
 
@@ -32,24 +32,30 @@ remo = Mesen("Remocon/obj.x64/remocon", "mario.nes")
 #remo = Mesen("Remocon/obj.x64/remocon", "mario3.nes")
 
 startup = 650
-results = remo.step([mario_controls[0][:startup]], Infos(framebuffer=False, live_sprites=False, tiles_by_pixel=False, new_tiles=False, new_sprite_tiles=False))
-results = remo.step([mario_controls[0][startup:startup + 1]], Infos(framebuffer=True, live_sprites=True, tiles_by_pixel=True, new_tiles=True, new_sprite_tiles=True))
+results_0 = remo.step([mario_controls[0][:startup]], Infos(framebuffer=False, live_sprites=False, tiles_by_pixel=False, new_tiles=True, new_sprite_tiles=True))
+results = remo.step([mario_controls[0][startup:startup + 1]], Infos(framebuffer=True, live_sprites=True, tiles_by_pixel=True, new_tiles=False, new_sprite_tiles=False))
 
 #remo.step(mario_controls, Infos(framebuffer=False, live_sprites=True, tiles_by_pixel=True, new_tiles=True, new_sprite_tiles=True))
 print("Steps done")
-if results[1].new_tiles is not None:
-    print("Dump tiles:", len(results[1].new_tiles))
-    for t in results[1].new_tiles:
+if results_0[1].new_tiles is not None:
+    print("Dump tiles:", len(results_0[1].new_tiles))
+    for t in results_0[1].new_tiles:
         dump_ppm(t.pixels, "testout/tt" + str(t.hash) + ".ppm")
     print("Done")
-if results[1].new_sprite_tiles is not None:
-    print("Dump sprite tiles:", len(results[1].new_sprite_tiles))
-    for t in results[1].new_sprite_tiles:
+if results_0[1].new_sprite_tiles is not None:
+    print("Dump sprite tiles:", len(results_0[1].new_sprite_tiles))
+    for t in results_0[1].new_sprite_tiles:
         dump_ppm(t.pixels, "testout/st" + str(t.hash) + ".ppm")
     print("Done")
 
-
+t = 0
 for pf in results[0]:
+    print(t)
+    t += 1
+    if pf.live_sprites is not None:
+        print("Live sprites:", len(pf.live_sprites))
+        for s in pf.live_sprites:
+            print(s.hash, s.x, s.y)
     if pf.framebuffer is not None:
         print("FB")
         plt.imshow(pf.framebuffer[:, :, [2, 1, 0]], interpolation='none')

@@ -243,7 +243,7 @@ class Mesen(object):
             if infos.framebuffer:
                 assert self.outp.readinto(cast(bytearray, self.readbuf[:self.framebuffer_length])) == self.framebuffer_length
                 read_idx = 0
-                framebuffer = cast(np.ndarray, np.array(self.readbuf[:self.framebuffer_length], copy=True, dtype=np.uint8).reshape((self.framebuffer_height, self.framebuffer_width, self.framebuffer_depth)))
+                framebuffer = cast(np.ndarray, np.flip(np.array(self.readbuf[:self.framebuffer_length], copy=True, dtype=np.uint8).reshape((self.framebuffer_height, self.framebuffer_width, self.framebuffer_depth))[:, :, 0:3], -1))
             if infos.tiles_by_pixel:
                 read_idx = 0
                 assert self.outp.readinto(cast(bytearray, self.readbuf[:4])) == 4
